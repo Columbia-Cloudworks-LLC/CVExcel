@@ -1,0 +1,86 @@
+{
+  "testSettings": {
+    "defaultTimeout": 300,
+    "retryCount": 2,
+    "parallelExecution": false,
+    "verboseOutput": false,
+    "saveLogs": true,
+    "logDirectory": "test-logs"
+  },
+  "testSuites": {
+    "quick": {
+      "description": "Quick smoke tests for basic functionality",
+      "tests": [
+        "test-powershell-version.ps1",
+        "SIMPLE_TEST.ps1",
+        "SIMPLE_VENDOR_TEST.ps1"
+      ]
+    },
+    "full": {
+      "description": "Complete test suite including all tests",
+      "tests": [
+        "test-powershell-version.ps1",
+        "test-required-modules.ps1",
+        "SIMPLE_TEST.ps1",
+        "SIMPLE_VENDOR_TEST.ps1",
+        "TEST_VENDOR_MODULES.ps1",
+        "TEST_CVSCRAPE_IMPROVEMENTS.ps1",
+        "TEST_SELENIUM_FIXES.ps1",
+        "TEST_AUTO_INSTALL.ps1",
+        "test-cvexcel-integration.ps1"
+      ]
+    },
+    "vendor": {
+      "description": "Vendor module specific tests",
+      "tests": [
+        "SIMPLE_VENDOR_TEST.ps1",
+        "TEST_VENDOR_MODULES.ps1"
+      ]
+    },
+    "selenium": {
+      "description": "Selenium integration tests",
+      "tests": [
+        "TEST_SELENIUM_FIXES.ps1"
+      ]
+    },
+    "integration": {
+      "description": "Integration and end-to-end tests",
+      "tests": [
+        "TEST_CVSCRAPE_IMPROVEMENTS.ps1",
+        "TEST_AUTO_INSTALL.ps1",
+        "test-cvexcel-integration.ps1"
+      ]
+    }
+  },
+  "environments": {
+    "development": {
+      "description": "Development environment settings",
+      "timeout": 600,
+      "retryCount": 3,
+      "verboseOutput": true
+    },
+    "ci": {
+      "description": "CI/CD environment settings",
+      "timeout": 300,
+      "retryCount": 1,
+      "verboseOutput": false,
+      "parallelExecution": true
+    },
+    "local": {
+      "description": "Local testing environment",
+      "timeout": 180,
+      "retryCount": 2,
+      "verboseOutput": true
+    }
+  },
+  "skipConditions": {
+    "selenium": {
+      "description": "Skip selenium tests if Chrome/Edge not available",
+      "condition": "Check-Command 'chrome' -ErrorAction SilentlyContinue -eq $false"
+    },
+    "network": {
+      "description": "Skip network-dependent tests if offline",
+      "condition": "Test-NetConnection -ComputerName 'google.com' -Port 80 -InformationLevel Quiet -WarningAction SilentlyContinue -eq $false"
+    }
+  }
+}

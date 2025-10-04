@@ -1,7 +1,8 @@
 microsoft windows
-microsoft edge
-mozilla firefox
-google chrome
+edge
+firefox
+chrome
+chromium
 microsoft windows server
 microsoft office
 microsoft internet explorer

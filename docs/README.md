@@ -287,8 +287,54 @@ cpe:2.3:part:vendor:product:version:update:edition:language:sw_edition:target_sw
 
 ---
 
+## CVScrape - Advisory Scraper
+
+A companion tool (`CVScrape.ps1`) scrapes advisory URLs from exported CSV files to extract:
+- Download links (patches, updates)
+- Patch IDs (KB articles, fix versions)
+- Remediation information
+- Affected versions
+
+### Features
+- **Complete Download Chain**: Automatically generates `catalog.update.microsoft.com` links from KB articles, bridging CVE → Advisory → KB → Patch Download
+- **MSRC Dynamic Page Handling**: Multi-tier extraction (API → HTML scrape → KB extraction) for JavaScript-heavy Microsoft pages
+- **Session-Based Requests**: Maintains cookies across requests to bypass basic anti-bot protection
+- **403 Graceful Handling**: Marks blocked URLs for manual review instead of failing
+- **Force Re-scrape**: Optional checkbox to override existing ScrapedDate and re-process files
+- **Enhanced Headers**: Uses realistic browser headers with Referer and encoding support
+- **Idempotent**: Won't re-scrape already processed files (unless forced)
+- **Detailed Logging**: Creates timestamped log files with comprehensive statistics
+- **Progress Tracking**: Real-time progress bar and status updates
+
+### Usage
+1. Run `CVExcel.ps1` to export CVE data to CSV
+2. Run `CVScrape.ps1` and select the CSV file
+3. (Optional) Enable "Force re-scrape" to override existing data
+4. Click "Scrape" to fetch and parse advisory pages
+5. Review blocked URLs (if any) in the completion summary
+
+### Output
+- Enhanced CSV with new columns: `DownloadLinks`, `ExtractedData`, `ScrapeStatus`, `ScrapedDate`
+- **DownloadLinks** column includes direct links to Microsoft Update Catalog (e.g., `https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB5062560`)
+- Backup CSV (`*_backup.csv`) of original file
+- Detailed log file (`scrape_log_*.log`) in `./out/`
+
+### Download Chain Example
+```
+CVE-2024-21302 
+  → https://msrc.microsoft.com/update-guide/vulnerability/CVE-2024-21302
+  → KB5062560 (auto-extracted)
+  → https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB5062560 (auto-generated)
+  → [Download Button on Catalog Page]
+```
+See `DOWNLOAD_CHAIN_VALIDATION.md` for technical details.
+
+---
+
 ## Roadmap
 
+- [x] **Advisory scraping tool** - Extract patches and remediation from URLs
+- [x] **MSRC API fallback** - Handle dynamic Microsoft pages
 - [ ] **CISA KEV integration** - Flag known exploited vulnerabilities
 - [ ] **Excel export** - Multi-sheet XLSX with formatting
 - [ ] **Scheduled exports** - Automated weekly/monthly runs

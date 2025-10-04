@@ -1,0 +1,75 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug CVScraper",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "${workspaceFolder}/CVScraper.ps1",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "args": []
+        },
+        {
+            "name": "Debug CVExcel",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "${workspaceFolder}/CVExcel.ps1",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "args": []
+        },
+        {
+            "name": "Debug Vendor Test",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "${workspaceFolder}/tests/TEST_VENDOR_MODULES.ps1",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "args": []
+        },
+        {
+            "name": "Debug Selenium Test",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "${workspaceFolder}/tests/TEST_SELENIUM_FIXES.ps1",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "args": []
+        },
+        {
+            "name": "Debug Simple Test",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "${workspaceFolder}/tests/SIMPLE_TEST.ps1",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "args": []
+        },
+        {
+            "name": "Debug Vendor Manager",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "${workspaceFolder}/vendors/VendorManager.ps1",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "args": []
+        },
+        {
+            "name": "Debug Current PowerShell File",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "${file}",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "args": []
+        }
+    ]
+}
