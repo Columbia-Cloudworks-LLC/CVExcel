@@ -2,3 +2,49 @@ microsoft windows
 microsoft edge
 mozilla firefox
 google chrome
+microsoft windows server
+microsoft office
+microsoft internet explorer
+adobe acrobat reader
+adobe flash player
+adobe photoshop
+adobe coldfusion
+apple ios
+apple macos
+apple safari
+google android
+oracle java se
+oracle mysql
+oracle database server
+cisco ios
+cisco asa
+cisco webex
+linux kernel
+ubuntu linux
+debian linux
+red hat enterprise linux
+suse linux enterprise
+openssl
+openssh
+apache http server
+apache tomcat
+php
+wordpress
+drupal
+joomla
+ibm websphere application server
+ibm tivoli
+sap netweaver
+vmware esxi
+vmware vcenter server
+vmware workstation
+symantec endpoint protection
+mcafee virusscan
+check point firewall-1
+juniper junos
+f5 big-ip
+fortinet fortios
+palo alto networks pan-os
+citrix xenapp
+citrix netscaler
+solarwinds orion
