@@ -21,7 +21,7 @@ ENHANCED FEATURES:
 Add-Type -AssemblyName PresentationFramework, PresentationCore, System.Web
 
 # -------------------- Paths --------------------
-$Root   = Get-Location
+$Root = Get-Location
 $OutDir = Join-Path $Root "out"
 if (-not (Test-Path $OutDir)) { Write-Error "Missing 'out' directory."; return }
 
@@ -77,12 +77,12 @@ function Write-Log {
 
     # Write to console with appropriate color
     $color = switch ($Level) {
-        "INFO"    { "White" }
+        "INFO" { "White" }
         "WARNING" { "Yellow" }
-        "ERROR"   { "Red" }
-        "DEBUG"   { "Gray" }
+        "ERROR" { "Red" }
+        "DEBUG" { "Gray" }
         "SUCCESS" { "Green" }
-        default   { "White" }
+        default { "White" }
     }
 
     Write-Host $logEntry -ForegroundColor $color
@@ -142,9 +142,9 @@ function Install-SeleniumIfNeeded {
     if ($seleniumModule -and -not $Force) {
         Write-Log -Message "Selenium module already installed (version $($seleniumModule.Version))" -Level "DEBUG"
         return @{
-            Success = $true
+            Success          = $true
             AlreadyInstalled = $true
-            Version = $seleniumModule.Version
+            Version          = $seleniumModule.Version
         }
     }
 
@@ -166,13 +166,12 @@ function Install-SeleniumIfNeeded {
         $seleniumModule = Get-Module -ListAvailable -Name Selenium
 
         return @{
-            Success = $true
+            Success          = $true
             AlreadyInstalled = $false
-            Version = $seleniumModule.Version
-            JustInstalled = $true
+            Version          = $seleniumModule.Version
+            JustInstalled    = $true
         }
-    }
-    catch {
+    } catch {
         Write-Log -Message "Failed to install Selenium: $_" -Level "ERROR"
         Write-Host "✗ Selenium installation failed: $_`n" -ForegroundColor Red
         Write-Host "  You can install manually with:" -ForegroundColor Yellow
@@ -180,20 +179,41 @@ function Install-SeleniumIfNeeded {
 
         return @{
             Success = $false
-            Error = $_.Exception.Message
+            Error   = $_.Exception.Message
         }
     }
 }
 
-function Get-MSRCPageWithSelenium {
+# Import Playwright wrapper
+. "$PSScriptRoot\PlaywrightWrapper.ps1"
+
+function Test-PlaywrightAvailability {
     <#
     .SYNOPSIS
-    Fetches Microsoft MSRC pages using Selenium to render JavaScript content.
+    Checks if Playwright is installed and available.
+    #>
+    try {
+        $packageDir = Join-Path $PSScriptRoot "packages"
+        if (-not (Test-Path $packageDir)) {
+            return $false
+        }
+        $playwrightDll = Get-ChildItem -Path $packageDir -Recurse -Filter "Microsoft.Playwright.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
+        return $null -ne $playwrightDll
+    } catch {
+        return $false
+    }
+}
+
+function Get-MSRCPageWithPlaywright {
+    <#
+    .SYNOPSIS
+    Fetches Microsoft MSRC pages using Playwright to render JavaScript content.
 
     .DESCRIPTION
     MSRC pages are React applications that require JavaScript execution.
-    This function uses Selenium WebDriver to render the page.
-    Will automatically install Selenium if not present.
+    This function uses Microsoft Playwright to render the page with superior
+    JavaScript support and bot detection avoidance compared to Selenium.
+    Will automatically prompt for installation if not present.
     #>
 
     [CmdletBinding()]
@@ -202,160 +222,84 @@ function Get-MSRCPageWithSelenium {
         [string]$Url
     )
 
-    # Check if Selenium module is available
-    $seleniumAvailable = Get-Module -ListAvailable -Name Selenium
+    Write-Log -Message "Using Playwright to render MSRC page: $Url" -Level "INFO"
 
-    if (-not $seleniumAvailable) {
-        Write-Log -Message "Selenium module not found. Attempting automatic installation..." -Level "INFO"
+    # Check if Playwright is available
+    $playwrightAvailable = Test-PlaywrightAvailability
 
-        # Try to install Selenium automatically
-        $installResult = Install-SeleniumIfNeeded
+    if (-not $playwrightAvailable) {
+        Write-Log -Message "Playwright not available. Installation required." -Level "WARNING"
+        Write-Host "`n╔═══════════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
+        Write-Host "║  Playwright not installed                                    ║" -ForegroundColor Yellow
+        Write-Host "║                                                               ║" -ForegroundColor Yellow
+        Write-Host "║  To enable MSRC page rendering, run:                          ║" -ForegroundColor Yellow
+        Write-Host "║  .\Install-Playwright.ps1                                    ║" -ForegroundColor Yellow
+        Write-Host "║                                                               ║" -ForegroundColor Yellow
+        Write-Host "║  The scraper will continue with HTTP-only mode                ║" -ForegroundColor Yellow
+        Write-Host "╚═══════════════════════════════════════════════════════════════╝`n" -ForegroundColor Yellow
 
-        if (-not $installResult.Success) {
-            Write-Log -Message "Selenium installation failed. MSRC pages will return minimal data." -Level "WARNING"
-            Write-Log -Message "Manual install: Install-Module -Name Selenium -Scope CurrentUser -Force" -Level "INFO"
-            return @{
-                Success = $false
-                Method = 'Selenium'
-                Error = 'Selenium module not installed and auto-install failed'
-                RequiresSelenium = $true
-            }
+        return @{
+            Success            = $false
+            Method             = 'Playwright'
+            Error              = 'Playwright not available and installation failed'
+            RequiresPlaywright = $true
         }
-
-        # Installation succeeded, continue
-        Write-Log -Message "Selenium installed successfully, proceeding with page rendering" -Level "SUCCESS"
     }
 
+    $playwright = $null
     try {
-        Import-Module Selenium -ErrorAction Stop
+        # Initialize Playwright
+        $playwright = [PlaywrightWrapper]::new("chromium")
 
-        Write-Log -Message "Using Selenium to render MSRC page: $Url" -Level "INFO"
-
-        # Create Edge options for headless mode - FIXED: Use correct PowerShell syntax
-        $options = New-Object OpenQA.Selenium.Edge.EdgeOptions
-        $options.AddArgument('--headless')
-        $options.AddArgument('--disable-gpu')
-        $options.AddArgument('--no-sandbox')
-        $options.AddArgument('--disable-dev-shm-usage')
-        $options.AddArgument('--log-level=3')  # Suppress logs
-        $options.AddArgument('--disable-blink-features=AutomationControlled')
-        $options.AddArgument('--disable-extensions')
-        $options.AddArgument('--disable-plugins')
-        $options.AddArgument('--disable-images')
-        $options.AddArgument('--disable-javascript')
-
-        # Try to start Edge WebDriver
-        try {
-            # Attempt to create driver with enhanced error handling
-            Write-Log -Message "Attempting to create Edge WebDriver with options" -Level "DEBUG"
-            $driver = New-Object OpenQA.Selenium.Edge.EdgeDriver($options)
-            Write-Log -Message "Successfully created Edge WebDriver" -Level "SUCCESS"
-        }
-        catch {
-            # WebDriver not found - provide helpful error
-            $errorMsg = $_.Exception.Message
-            Write-Log -Message "EdgeDriver not found or not compatible: $errorMsg" -Level "WARNING"
-            Write-Host "`n╔═══════════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
-            Write-Host "║  Edge WebDriver not found or incompatible                     ║" -ForegroundColor Yellow
-            Write-Host "║                                                               ║" -ForegroundColor Yellow
-            Write-Host "║  To enable MSRC page rendering:                               ║" -ForegroundColor Yellow
-            Write-Host "║  1. Get your Edge version:                                    ║" -ForegroundColor Yellow
-            Write-Host "║     (Get-Item 'C:\Program Files (x86)\Microsoft\Edge\        ║" -ForegroundColor Yellow
-            Write-Host "║      Application\msedge.exe').VersionInfo.FileVersion        ║" -ForegroundColor Yellow
-            Write-Host "║                                                               ║" -ForegroundColor Yellow
-            Write-Host "║  2. Download matching WebDriver from:                         ║" -ForegroundColor Yellow
-            Write-Host "║     https://developer.microsoft.com/microsoft-edge/tools/    ║" -ForegroundColor Yellow
-            Write-Host "║     webdriver/                                                ║" -ForegroundColor Yellow
-            Write-Host "║                                                               ║" -ForegroundColor Yellow
-            Write-Host "║  3. Extract msedgedriver.exe to PATH or C:\WebDriver\        ║" -ForegroundColor Yellow
-            Write-Host "╚═══════════════════════════════════════════════════════════════╝`n" -ForegroundColor Yellow
-
-            return @{
-                Success = $false
-                Method = 'Selenium'
-                Error = "EdgeDriver not found: $errorMsg"
-                RequiresWebDriver = $true
-            }
+        if (-not $playwright.Initialize()) {
+            throw "Failed to initialize Playwright browser"
         }
 
-        try {
-            # Navigate to page
-            $driver.Navigate().GoToUrl($Url)
+        # Navigate to page with extended wait for MSRC content (8 seconds)
+        $result = $playwright.NavigateToPage($Url, 8)
 
-            # Wait for JavaScript to render with dynamic wait
-            Write-Log -Message "Waiting for page to load and JavaScript to render" -Level "DEBUG"
-            Start-Sleep -Seconds 3
+        if ($result.Success) {
+            # Validate content quality
+            $contentSize = $result.Size
+            $hasGoodContent = $contentSize -gt 10000 -and $result.Content -match '(CVE|vulnerability|security|update|patch|KB)'
 
-            # Try to wait for specific elements that indicate page is loaded
-            try {
-                $wait = New-Object OpenQA.Selenium.Support.UI.WebDriverWait($driver, [TimeSpan]::FromSeconds(10))
-                $wait.Until([OpenQA.Selenium.Support.UI.ExpectedConditions]::ElementExists([OpenQA.Selenium.By]::TagName("body")))
-                Write-Log -Message "Page body element found, waiting additional time for content" -Level "DEBUG"
-                Start-Sleep -Seconds 2
-            }
-            catch {
-                Write-Log -Message "Timeout waiting for page elements, proceeding with current content" -Level "WARNING"
-                Start-Sleep -Seconds 2
-            }
+            if ($hasGoodContent) {
+                Write-Log -Message "Successfully rendered MSRC page with Playwright ($contentSize bytes)" -Level "SUCCESS"
+                Write-Log -Message "Detected MSRC-specific content in rendered page" -Level "SUCCESS"
 
-            # Get fully-rendered page content
-            $pageContent = $driver.PageSource
-
-            # Enhanced content validation
-            if ($pageContent -and $pageContent.Length -gt 1000) {
-                Write-Log -Message "Successfully rendered MSRC page with Selenium" -Level "SUCCESS"
-
-                # Check for common MSRC content indicators
-                $hasMsrcContent = $false
-                if ($pageContent -match '(CVE|vulnerability|security|update|patch|KB)') {
-                    $hasMsrcContent = $true
-                    Write-Log -Message "Detected MSRC-specific content in rendered page" -Level "SUCCESS"
+                return @{
+                    Success = $true
+                    Content = $result.Content
+                    Size    = $contentSize
+                    Method  = 'Playwright'
                 }
+            } else {
+                Write-Log -Message "MSRC page rendered but content appears incomplete ($contentSize bytes)" -Level "WARNING"
 
-                if (-not $hasMsrcContent) {
-                    Write-Log -Message "Warning: Rendered page may not contain expected MSRC content" -Level "WARNING"
+                # Still return the content, but mark as potentially incomplete
+                return @{
+                    Success = $true
+                    Content = $result.Content
+                    Size    = $contentSize
+                    Method  = 'Playwright'
+                    Warning = 'Content may be incomplete'
                 }
             }
-            else {
-                Write-Log -Message "Warning: Rendered page content is minimal" -Level "WARNING"
-            }
-
-            return @{
-                Success = $true
-                Method = 'Selenium'
-                Content = $pageContent
-            }
+        } else {
+            throw $result.Error
         }
-        finally {
-            $driver.Quit()
-        }
-    }
-    catch {
-        $errorDetails = $_.Exception.Message
-        Write-Log -Message "Selenium error: $errorDetails" -Level "ERROR"
-
-        # Enhanced error categorization
-        $errorType = "Unknown"
-        if ($errorDetails -match "Method invocation failed.*AddArgument") {
-            $errorType = "EdgeOptions Compatibility"
-            Write-Log -Message "EdgeOptions.AddArgument method compatibility issue detected" -Level "ERROR"
-        }
-        elseif ($errorDetails -match "WebDriver.*not found") {
-            $errorType = "WebDriver Missing"
-        }
-        elseif ($errorDetails -match "timeout|Timeout") {
-            $errorType = "Timeout"
-        }
-        elseif ($errorDetails -match "permission|access denied") {
-            $errorType = "Permission"
-        }
+    } catch {
+        $errorMsg = $_.Exception.Message
+        Write-Log -Message "Playwright rendering failed: $errorMsg" -Level "ERROR"
 
         return @{
             Success = $false
-            Method = 'Selenium'
-            Error = $errorDetails
-            ErrorType = $errorType
-            RequiresWebDriver = $true
+            Method  = 'Playwright'
+            Error   = $errorMsg
+        }
+    } finally {
+        if ($playwright) {
+            $playwright.Dispose()
         }
     }
 }
@@ -400,17 +344,17 @@ function Invoke-WebRequestWithRetry {
 
             # Enhanced headers to mimic real browser and avoid bot detection
             $headers = @{
-                'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                'Accept' = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'
-                'Accept-Language' = 'en-US,en;q=0.9'
-                'Accept-Encoding' = 'gzip, deflate, br'
-                'DNT' = '1'
-                'Connection' = 'keep-alive'
+                'User-Agent'                = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                'Accept'                    = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'
+                'Accept-Language'           = 'en-US,en;q=0.9'
+                'Accept-Encoding'           = 'gzip, deflate, br'
+                'DNT'                       = '1'
+                'Connection'                = 'keep-alive'
                 'Upgrade-Insecure-Requests' = '1'
-                'Sec-Fetch-Dest' = 'document'
-                'Sec-Fetch-Mode' = 'navigate'
-                'Sec-Fetch-Site' = 'none'
-                'Cache-Control' = 'max-age=0'
+                'Sec-Fetch-Dest'            = 'document'
+                'Sec-Fetch-Mode'            = 'navigate'
+                'Sec-Fetch-Site'            = 'none'
+                'Cache-Control'             = 'max-age=0'
             }
 
             # Add small random delay to appear more human-like (helps avoid rate limiting)
@@ -428,11 +372,11 @@ function Invoke-WebRequestWithRetry {
             }
 
             $invokeParams = @{
-                Uri = $Url
-                Headers = $headers
-                TimeoutSec = $TimeoutSec
+                Uri             = $Url
+                Headers         = $headers
+                TimeoutSec      = $TimeoutSec
                 UseBasicParsing = $true
-                ErrorAction = 'Stop'
+                ErrorAction     = 'Stop'
             }
 
             # Use session if provided (maintains cookies across requests)
@@ -450,15 +394,14 @@ function Invoke-WebRequestWithRetry {
             $returnSession = if ($Session) { $Session } elseif ($newSession) { $newSession } else { $null }
 
             return @{
-                Success = $true
-                Content = $response.Content
+                Success    = $true
+                Content    = $response.Content
                 StatusCode = $response.StatusCode
-                Attempts = $attempt
-                Error = $null
-                Session = $returnSession
+                Attempts   = $attempt
+                Error      = $null
+                Session    = $returnSession
             }
-        }
-        catch {
+        } catch {
             $lastException = $_.Exception
             $errorType = $_.Exception.GetType().Name
             $errorMessage = $_.Exception.Message
@@ -484,8 +427,7 @@ function Invoke-WebRequestWithRetry {
                         }
                     }
                 }
-            }
-            elseif ($_.Exception -is [System.OperationCanceledException]) {
+            } elseif ($_.Exception -is [System.OperationCanceledException]) {
                 $shouldRetry = $true # Timeout
             }
 
@@ -496,8 +438,7 @@ function Invoke-WebRequestWithRetry {
                 $totalDelay = $delay + $jitter
                 Write-Log -Message "Retrying in $totalDelay ms..." -Level "INFO"
                 Start-Sleep -Milliseconds $totalDelay
-            }
-            else {
+            } else {
                 break
             }
         }
@@ -505,10 +446,10 @@ function Invoke-WebRequestWithRetry {
 
     # All attempts failed
     $errorDetails = @{
-        'Error Type' = $lastException.GetType().Name
+        'Error Type'    = $lastException.GetType().Name
         'Error Message' = $lastException.Message
         'Attempts Made' = $attempt
-        'Final Status' = if ($lastException -is [System.Net.WebException] -and $lastException.Response) {
+        'Final Status'  = if ($lastException -is [System.Net.WebException] -and $lastException.Response) {
             [int]$lastException.Response.StatusCode
         } else { 'N/A' }
     }
@@ -516,11 +457,11 @@ function Invoke-WebRequestWithRetry {
     Write-Log -Message "All retry attempts failed for URL: $Url - $($errorDetails | ConvertTo-Json -Compress)" -Level "ERROR"
 
     return @{
-        Success = $false
-        Content = $null
+        Success    = $false
+        Content    = $null
         StatusCode = $errorDetails.'Final Status'
-        Attempts = $attempt
-        Error = $errorDetails
+        Attempts   = $attempt
+        Error      = $errorDetails
     }
 }
 
@@ -535,8 +476,8 @@ function Get-WebPageContent {
     if (-not $Url -or $Url -eq '') {
         Write-Log -Message "Empty URL provided to Get-WebPageContent" -Level "WARNING"
         return @{
-            Content = $null
-            Session = $Session
+            Content    = $null
+            Session    = $Session
             StatusCode = $null
         }
     }
@@ -545,16 +486,15 @@ function Get-WebPageContent {
 
     if ($result.Success) {
         return @{
-            Content = $result.Content
-            Session = $result.Session
+            Content    = $result.Content
+            Session    = $result.Session
             StatusCode = $result.StatusCode
         }
-    }
-    else {
+    } else {
         Write-Log -Message "Failed to fetch page content for: $Url" -Level "ERROR"
         return @{
-            Content = $null
-            Session = $Session
+            Content    = $null
+            Session    = $Session
             StatusCode = $result.StatusCode
         }
     }
@@ -646,10 +586,10 @@ function Get-MsrcAdvisoryData {
         return $result.Data
     } else {
         return @{
-            PatchID = $null
+            PatchID          = $null
             AffectedVersions = $null
-            Remediation = $null
-            DownloadLinks = @()
+            Remediation      = $null
+            DownloadLinks    = @()
         }
     }
 }
@@ -689,12 +629,12 @@ function Scrape-AdvisoryUrl {
     if (-not $Url -or $Url -eq '') {
         Write-Log -Message "Empty URL provided to Scrape-AdvisoryUrl" -Level "WARNING"
         return @{
-            Url = $Url
-            Status = 'Empty'
+            Url           = $Url
+            Status        = 'Empty'
             DownloadLinks = ''
             ExtractedData = ''
-            Error = 'Empty URL'
-            Session = $Session
+            Error         = 'Empty URL'
+            Session       = $Session
         }
     }
 
@@ -714,53 +654,45 @@ function Scrape-AdvisoryUrl {
         if ($githubResult.Success) {
             Write-Log -Message "Successfully extracted GitHub data via API" -Level "SUCCESS"
             return @{
-                Url = $Url
-                Status = 'Success'
-                DownloadLinks = ($githubResult.DownloadLinks -join ' | ')
-                ExtractedData = $githubResult.ExtractedData
-                Error = $null
-                FetchTime = $totalTime.TotalSeconds
-                ExtractTime = $totalTime.TotalSeconds
-                TotalTime = $totalTime.TotalSeconds
-                LinksFound = $githubResult.DownloadLinks.Count
+                Url            = $Url
+                Status         = 'Success'
+                DownloadLinks  = ($githubResult.DownloadLinks -join ' | ')
+                ExtractedData  = $githubResult.ExtractedData
+                Error          = $null
+                FetchTime      = $totalTime.TotalSeconds
+                ExtractTime    = $totalTime.TotalSeconds
+                TotalTime      = $totalTime.TotalSeconds
+                LinksFound     = $githubResult.DownloadLinks.Count
                 DataPartsFound = if ($githubResult.ExtractedData) { ($githubResult.ExtractedData -split '\|').Count } else { 0 }
-                Session = $Session
-                Method = 'GitHub API'
+                Session        = $Session
+                Method         = 'GitHub API'
             }
-        }
-        else {
+        } else {
             Write-Log -Message "GitHub API failed: $($githubResult.Error) - Falling back to standard scraping" -Level "WARNING"
             # Fall through to standard scraping
         }
     }
 
-        # MICROSOFT MSRC URLs - Try Selenium first, fallback to standard
+    # MICROSOFT MSRC URLs - Try Playwright first, fallback to standard
     if ($Url -match 'msrc\.microsoft\.com') {
-        Write-Log -Message "Detected Microsoft MSRC URL - Attempting Selenium rendering" -Level "INFO"
+        Write-Log -Message "Detected Microsoft MSRC URL - Attempting Playwright rendering" -Level "INFO"
 
         $startTime = Get-Date
-        $seleniumResult = Get-MSRCPageWithSelenium -Url $Url
+        $playwrightResult = Get-MSRCPageWithPlaywright -Url $Url
 
-        if ($seleniumResult.Success) {
-            Write-Log -Message "Successfully rendered MSRC page with Selenium" -Level "SUCCESS"
-            $htmlContent = $seleniumResult.Content
+        if ($playwrightResult.Success) {
+            Write-Log -Message "Successfully rendered MSRC page with Playwright" -Level "SUCCESS"
+            $htmlContent = $playwrightResult.Content
             $fetchTime = (Get-Date) - $startTime
 
             # Continue with standard extraction using the rendered content
             # (The rest of the function will process this content normally)
-        }
-        elseif ($seleniumResult.RequiresSelenium) {
-            Write-Log -Message "Selenium not available - MSRC page will return minimal data" -Level "WARNING"
-            Write-Log -Message "To fix: Install-Module -Name Selenium -Scope CurrentUser -Force" -Level "INFO"
+        } elseif ($playwrightResult.RequiresPlaywright) {
+            Write-Log -Message "Playwright not available - MSRC page will return minimal data" -Level "WARNING"
+            Write-Log -Message "To fix: .\Install-Playwright.ps1" -Level "INFO"
             # Fall through to standard scraping (will get skeleton HTML)
-        }
-        elseif ($seleniumResult.ErrorType -eq "EdgeOptions Compatibility") {
-            Write-Log -Message "Selenium EdgeOptions compatibility issue - MSRC page will return minimal data" -Level "WARNING"
-            Write-Log -Message "This is a known issue with certain Selenium versions" -Level "INFO"
-            # Fall through to standard scraping
-        }
-        else {
-            Write-Log -Message "Selenium failed: $($seleniumResult.Error) - Falling back to standard scraping" -Level "WARNING"
+        } else {
+            Write-Log -Message "Playwright failed: $($playwrightResult.Error) - Falling back to standard scraping" -Level "WARNING"
             # Fall through to standard scraping
         }
     }
@@ -775,8 +707,7 @@ function Scrape-AdvisoryUrl {
         if (-not $htmlContent) {
             $pageResult = Get-WebPageContent -Url $Url -TimeoutSec 30 -Session $Session
             $htmlContent = $pageResult.Content
-        }
-        else {
+        } else {
             # Use session from parameter if we got content from Selenium
             $pageResult = @{ Session = $Session; StatusCode = 200 }
         }
@@ -789,17 +720,17 @@ function Scrape-AdvisoryUrl {
 
             # Enhanced blocked URL handling
             $blockedMessage = "Blocked - 403 Forbidden - Anti-bot protection detected. " +
-                             "This URL requires manual review in a browser. " +
-                             "Consider using a different scraping approach or manual data entry."
+            "This URL requires manual review in a browser. " +
+            "Consider using a different scraping approach or manual data entry."
 
             return @{
-                Url = $Url
-                Status = 'Blocked'
-                DownloadLinks = ''
-                ExtractedData = $blockedMessage
-                Error = '403 Forbidden - Anti-bot protection'
-                FetchTime = $fetchTime.TotalSeconds
-                Session = $pageResult.Session
+                Url                  = $Url
+                Status               = 'Blocked'
+                DownloadLinks        = ''
+                ExtractedData        = $blockedMessage
+                Error                = '403 Forbidden - Anti-bot protection'
+                FetchTime            = $fetchTime.TotalSeconds
+                Session              = $pageResult.Session
                 RequiresManualReview = $true
             }
         }
@@ -807,13 +738,13 @@ function Scrape-AdvisoryUrl {
         if (-not $htmlContent) {
             Write-Log -Message "Failed to fetch page content for URL: $Url" -Level "ERROR"
             return @{
-                Url = $Url
-                Status = 'Failed'
+                Url           = $Url
+                Status        = 'Failed'
                 DownloadLinks = ''
                 ExtractedData = 'Failed to fetch page'
-                Error = 'No content returned'
-                FetchTime = $fetchTime.TotalSeconds
-                Session = $pageResult.Session
+                Error         = 'No content returned'
+                FetchTime     = $fetchTime.TotalSeconds
+                Session       = $pageResult.Session
             }
         }
 
@@ -862,37 +793,35 @@ function Scrape-AdvisoryUrl {
         Write-Log -Message "Successfully scraped URL: $Url - Total time: $($totalTime.TotalSeconds)s, Links: $($downloadLinks.Count), Data parts: $($extractedParts.Count)" -Level "SUCCESS"
 
         return @{
-            Url = $Url
-            Status = 'Success'
-            DownloadLinks = ($downloadLinks -join ' | ')
-            ExtractedData = $extractedData
-            Error = $null
-            FetchTime = $fetchTime.TotalSeconds
-            ExtractTime = $patchExtractTime.TotalSeconds
-            TotalTime = $totalTime.TotalSeconds
-            LinksFound = $downloadLinks.Count
+            Url            = $Url
+            Status         = 'Success'
+            DownloadLinks  = ($downloadLinks -join ' | ')
+            ExtractedData  = $extractedData
+            Error          = $null
+            FetchTime      = $fetchTime.TotalSeconds
+            ExtractTime    = $patchExtractTime.TotalSeconds
+            TotalTime      = $totalTime.TotalSeconds
+            LinksFound     = $downloadLinks.Count
             DataPartsFound = $extractedParts.Count
-            Session = $pageResult.Session
+            Session        = $pageResult.Session
         }
-    }
-    catch {
+    } catch {
         $errorMessage = $_.Exception.Message
         Write-Log -Message "Error scraping URL: $Url - $errorMessage" -Level "ERROR"
         return @{
-            Url = $Url
-            Status = 'Error'
-            DownloadLinks = ''
-            ExtractedData = "Error: $errorMessage"
-            Error = $errorMessage
-            FetchTime = 0
-            ExtractTime = 0
-            TotalTime = 0
-            LinksFound = 0
+            Url            = $Url
+            Status         = 'Error'
+            DownloadLinks  = ''
+            ExtractedData  = "Error: $errorMessage"
+            Error          = $errorMessage
+            FetchTime      = 0
+            ExtractTime    = 0
+            TotalTime      = 0
+            LinksFound     = 0
             DataPartsFound = 0
-            Session = $Session
+            Session        = $Session
         }
-    }
-    finally {
+    } finally {
         # Small delay with jitter to be respectful to servers
         $delay = Get-Random -Minimum 500 -Maximum 1000
         Start-Sleep -Milliseconds $delay
@@ -914,8 +843,8 @@ function Process-CsvFile {
     if (-not $ForceRescrape -and (Test-CsvAlreadyScraped -CsvPath $CsvPath)) {
         Write-Log -Message "CSV already scraped (ScrapedDate column exists). Skipping." -Level "WARNING"
         return @{
-            Success = $false
-            Message = "File already scraped. Enable 'Force re-scrape' option to override."
+            Success        = $false
+            Message        = "File already scraped. Enable 'Force re-scrape' option to override."
             AlreadyScraped = $true
         }
     }
@@ -974,15 +903,15 @@ function Process-CsvFile {
         $currentUrl++
 
         if ($StatusText) {
-            $StatusText.Dispatcher.Invoke([Action]{
-                $StatusText.Text = "Scraping URL $currentUrl of $($uniqueUrls.Count)..."
-            })
+            $StatusText.Dispatcher.Invoke([Action] {
+                    $StatusText.Text = "Scraping URL $currentUrl of $($uniqueUrls.Count)..."
+                })
         }
 
         if ($ProgressBar) {
-            $ProgressBar.Dispatcher.Invoke([Action]{
-                $ProgressBar.Value = $currentUrl
-            })
+            $ProgressBar.Dispatcher.Invoke([Action] {
+                    $ProgressBar.Value = $currentUrl
+                })
         }
 
         Write-Host "  [$currentUrl/$($uniqueUrls.Count)] $url" -ForegroundColor Gray
@@ -1066,25 +995,25 @@ function Process-CsvFile {
     $errorTypes = $urlCache.Values | Where-Object { $_.Error } | Group-Object { $_.Error.Split(':')[0] } | Sort-Object Count -Descending
 
     $stats = "`n" +
-             "================================================================================`n" +
-             "SCRAPING COMPLETED - DETAILED STATISTICS`n" +
-             "================================================================================`n" +
-             "Overall Results:`n" +
-             "- Total unique URLs processed: $($uniqueUrls.Count)`n" +
-             "- Successfully scraped: $successCount`n" +
-             "- Failed: $failedCount`n" +
-             "- Blocked - 403 anti-bot: $blockedCount`n" +
-             "- Empty URLs: $emptyCount`n" +
-             "- URLs with download links: $linksFound`n" +
-             "- URLs with extracted data: $dataExtracted`n" +
-             "- CSV rows updated: $($csvData.Count)`n" +
-             "`n" +
-             "Performance Metrics:`n" +
-             "- Average fetch time per URL: $avgFetchTime seconds`n" +
-             "- Average extraction time per URL: $avgExtractTime seconds`n" +
-             "- Total processing time: $((Get-Date) - $processStartTime).TotalSeconds seconds`n" +
-             "`n" +
-             "Error Analysis:`n"
+    "================================================================================`n" +
+    "SCRAPING COMPLETED - DETAILED STATISTICS`n" +
+    "================================================================================`n" +
+    "Overall Results:`n" +
+    "- Total unique URLs processed: $($uniqueUrls.Count)`n" +
+    "- Successfully scraped: $successCount`n" +
+    "- Failed: $failedCount`n" +
+    "- Blocked - 403 anti-bot: $blockedCount`n" +
+    "- Empty URLs: $emptyCount`n" +
+    "- URLs with download links: $linksFound`n" +
+    "- URLs with extracted data: $dataExtracted`n" +
+    "- CSV rows updated: $($csvData.Count)`n" +
+    "`n" +
+    "Performance Metrics:`n" +
+    "- Average fetch time per URL: $avgFetchTime seconds`n" +
+    "- Average extraction time per URL: $avgExtractTime seconds`n" +
+    "- Total processing time: $((Get-Date) - $processStartTime).TotalSeconds seconds`n" +
+    "`n" +
+    "Error Analysis:`n"
 
     if ($errorTypes.Count -gt 0) {
         $stats += ($errorTypes | ForEach-Object { "- $($_.Name): $($_.Count) occurrences" } | Out-String)
@@ -1110,20 +1039,20 @@ function Process-CsvFile {
     }
 
     return @{
-        Success = $true
-        Message = $stats
-        TotalUrls = $uniqueUrls.Count
-        SuccessCount = $successCount
-        FailedCount = $failedCount
-        BlockedCount = $blockedCount
-        BlockedUrls = $blockedUrls
-        EmptyCount = $emptyCount
-        LinksFound = $linksFound
-        DataExtracted = $dataExtracted
-        AvgFetchTime = $avgFetchTime
-        AvgExtractTime = $avgExtractTime
+        Success             = $true
+        Message             = $stats
+        TotalUrls           = $uniqueUrls.Count
+        SuccessCount        = $successCount
+        FailedCount         = $failedCount
+        BlockedCount        = $blockedCount
+        BlockedUrls         = $blockedUrls
+        EmptyCount          = $emptyCount
+        LinksFound          = $linksFound
+        DataExtracted       = $dataExtracted
+        AvgFetchTime        = $avgFetchTime
+        AvgExtractTime      = $avgExtractTime
         TotalProcessingTime = ((Get-Date) - $processStartTime).TotalSeconds
-        ErrorTypes = $errorTypes
+        ErrorTypes          = $errorTypes
     }
 }
 
@@ -1192,14 +1121,14 @@ function Process-CsvFile {
 $reader = (New-Object System.Xml.XmlNodeReader $xaml)
 $window = [Windows.Markup.XamlReader]::Load($reader)
 
-$csvCombo         = $window.FindName('CsvCombo')
-$fileInfoText     = $window.FindName('FileInfoText')
+$csvCombo = $window.FindName('CsvCombo')
+$fileInfoText = $window.FindName('FileInfoText')
 $forceRescrapeChk = $window.FindName('ForceRescrapeChk')
-$progressBar      = $window.FindName('ProgressBar')
-$statusText       = $window.FindName('StatusText')
-$refreshButton    = $window.FindName('RefreshButton')
-$scrapeButton     = $window.FindName('ScrapeButton')
-$cancelButton     = $window.FindName('CancelButton')
+$progressBar = $window.FindName('ProgressBar')
+$statusText = $window.FindName('StatusText')
+$refreshButton = $window.FindName('RefreshButton')
+$scrapeButton = $window.FindName('ScrapeButton')
+$cancelButton = $window.FindName('CancelButton')
 
 # -------------------- Populate CSV list --------------------
 function Refresh-CsvList {
@@ -1220,136 +1149,9 @@ function Refresh-CsvList {
 
 # Update file info when selection changes
 $csvCombo.Add_SelectionChanged({
-    if ($csvCombo.SelectedItem) {
-        $selectedFile = Join-Path $OutDir $csvCombo.SelectedItem
-        if (Test-Path $selectedFile) {
-            $fileInfo = Get-Item $selectedFile
-            $csvData = Import-Csv -Path $selectedFile -Encoding UTF8
-            $isScraped = Test-CsvAlreadyScraped -CsvPath $selectedFile
-
-            $scrapedStatus = if ($isScraped) { "Already scraped" } else { "Not yet scraped" }
-            $fileInfoText.Text = "File: $($fileInfo.Name) | Size: $([Math]::Round($fileInfo.Length/1KB, 2)) KB | Rows: $($csvData.Count) | Status: $scrapedStatus"
-
-            if ($isScraped) {
-                $fileInfoText.Foreground = "Green"
-            } else {
-                $fileInfoText.Foreground = "Gray"
-            }
-        }
-    }
-})
-
-# Initial population
-Refresh-CsvList
-
-# -------------------- Button Handlers --------------------
-$refreshButton.Add_Click({
-    Refresh-CsvList
-    [System.Windows.MessageBox]::Show("CSV file list refreshed.", "Refresh")
-})
-
-$scrapeButton.Add_Click({
-    if (-not $csvCombo.SelectedItem) {
-        [System.Windows.MessageBox]::Show("Please select a CSV file first.", "Validation")
-        return
-    }
-
-    $selectedFile = Join-Path $OutDir $csvCombo.SelectedItem
-
-    # Pre-check: Count unique URLs before starting
-    try {
-        $csvData = Import-Csv -Path $selectedFile -Encoding UTF8
-
-        # Count unique URLs
-        $allUrls = @()
-        foreach ($row in $csvData) {
-            if ($row.RefUrls -and $row.RefUrls -ne '') {
-                $urls = $row.RefUrls -split '\s*\|\s*'
-                $allUrls += $urls
-            }
-        }
-        $uniqueUrls = $allUrls | Where-Object { $_ -and $_ -ne '' } | Select-Object -Unique
-        $urlCount = $uniqueUrls.Count
-
-        # Show warning if more than 50 URLs
-        if ($urlCount -gt 50) {
-            $estimatedTime = [Math]::Ceiling($urlCount * 0.5 / 60)  # ~0.5 seconds per URL
-            $warningMessage = "This CSV file contains $urlCount unique URLs to scrape.`n`nEstimated time: ~$estimatedTime minute(s)`n`nThis operation may take a while and will:`n• Make $urlCount web requests`n• Parse HTML content from each advisory page`n• Extract download links and patch information`n`nDo you want to proceed?"
-
-            $response = [System.Windows.MessageBox]::Show(
-                $warningMessage,
-                "Large Scraping Operation",
-                [System.Windows.MessageBoxButton]::YesNo,
-                [System.Windows.MessageBoxImage]::Warning
-            )
-
-            if ($response -eq [System.Windows.MessageBoxResult]::No) {
-                Write-Host "Scraping cancelled by user." -ForegroundColor Yellow
-                return
-            }
-        }
-    }
-    catch {
-        [System.Windows.MessageBox]::Show(
-            "Failed to read CSV file:`n`n$($_.Exception.Message)",
-            "Error",
-            [System.Windows.MessageBoxButton]::OK,
-            [System.Windows.MessageBoxImage]::Error
-        )
-        return
-    }
-
-    try {
-        $window.Cursor = 'Wait'
-        $scrapeButton.Content = "Processing..."
-        $scrapeButton.IsEnabled = $false
-        $progressBar.Value = 0
-        $statusText.Text = "Initializing..."
-
-        # Initialize log file
-        $Global:LogFile = Initialize-LogFile -LogDir $OutDir
-        Write-Log -Message "Starting scraping operation for file: $selectedFile" -Level "INFO"
-
-        # Check force re-scrape option
-        $forceRescrape = [bool]$forceRescrapeChk.IsChecked
-        if ($forceRescrape) {
-            Write-Log -Message "Force re-scrape option enabled" -Level "INFO"
-        }
-
-        # Process the CSV
-        $result = Process-CsvFile -CsvPath $selectedFile -ProgressBar $progressBar -StatusText $statusText -ForceRescrape:$forceRescrape
-
-        if ($result.AlreadyScraped) {
-            [System.Windows.MessageBox]::Show(
-                $result.Message,
-                "Already Scraped",
-                [System.Windows.MessageBoxButton]::OK,
-                [System.Windows.MessageBoxImage]::Information
-            )
-        }
-        elseif ($result.Success) {
-            $logFileName = Split-Path $Global:LogFile -Leaf
-
-            # Build summary message with blocked URLs if any
-            $summaryMessage = "Scraping completed successfully!`n`n$($result.Message)`n`nFiles created:`n- Backup: $($selectedFile -replace '\.csv$', '_backup.csv')`n- Log file: $logFileName"
-
-            if ($result.BlockedUrls -and $result.BlockedUrls.Count -gt 0) {
-                $summaryMessage += "`n`n⚠ BLOCKED URLS (require manual review):`n"
-                foreach ($blockedUrl in $result.BlockedUrls) {
-                    $summaryMessage += "• $blockedUrl`n"
-                }
-                $summaryMessage += "`nThese URLs were blocked by anti-bot protection - 403 Forbidden.`nConsider visiting them manually in a browser."
-            }
-
-            [System.Windows.MessageBox]::Show(
-                $summaryMessage,
-                "Success",
-                [System.Windows.MessageBoxButton]::OK,
-                [System.Windows.MessageBoxImage]::Information
-            )
-
-            # Refresh the file info to show updated status
-            if ($csvCombo.SelectedItem) {
+        if ($csvCombo.SelectedItem) {
+            $selectedFile = Join-Path $OutDir $csvCombo.SelectedItem
+            if (Test-Path $selectedFile) {
                 $fileInfo = Get-Item $selectedFile
                 $csvData = Import-Csv -Path $selectedFile -Encoding UTF8
                 $isScraped = Test-CsvAlreadyScraped -CsvPath $selectedFile
@@ -1364,34 +1166,158 @@ $scrapeButton.Add_Click({
                 }
             }
         }
-        else {
+    })
+
+# Initial population
+Refresh-CsvList
+
+# -------------------- Button Handlers --------------------
+$refreshButton.Add_Click({
+        Refresh-CsvList
+        [System.Windows.MessageBox]::Show("CSV file list refreshed.", "Refresh")
+    })
+
+$scrapeButton.Add_Click({
+        if (-not $csvCombo.SelectedItem) {
+            [System.Windows.MessageBox]::Show("Please select a CSV file first.", "Validation")
+            return
+        }
+
+        $selectedFile = Join-Path $OutDir $csvCombo.SelectedItem
+
+        # Pre-check: Count unique URLs before starting
+        try {
+            $csvData = Import-Csv -Path $selectedFile -Encoding UTF8
+
+            # Count unique URLs
+            $allUrls = @()
+            foreach ($row in $csvData) {
+                if ($row.RefUrls -and $row.RefUrls -ne '') {
+                    $urls = $row.RefUrls -split '\s*\|\s*'
+                    $allUrls += $urls
+                }
+            }
+            $uniqueUrls = $allUrls | Where-Object { $_ -and $_ -ne '' } | Select-Object -Unique
+            $urlCount = $uniqueUrls.Count
+
+            # Show warning if more than 50 URLs
+            if ($urlCount -gt 50) {
+                $estimatedTime = [Math]::Ceiling($urlCount * 0.5 / 60)  # ~0.5 seconds per URL
+                $warningMessage = "This CSV file contains $urlCount unique URLs to scrape.`n`nEstimated time: ~$estimatedTime minute(s)`n`nThis operation may take a while and will:`n• Make $urlCount web requests`n• Parse HTML content from each advisory page`n• Extract download links and patch information`n`nDo you want to proceed?"
+
+                $response = [System.Windows.MessageBox]::Show(
+                    $warningMessage,
+                    "Large Scraping Operation",
+                    [System.Windows.MessageBoxButton]::YesNo,
+                    [System.Windows.MessageBoxImage]::Warning
+                )
+
+                if ($response -eq [System.Windows.MessageBoxResult]::No) {
+                    Write-Host "Scraping cancelled by user." -ForegroundColor Yellow
+                    return
+                }
+            }
+        } catch {
             [System.Windows.MessageBox]::Show(
-                "Failed to process CSV:`n`n$($result.Message)",
+                "Failed to read CSV file:`n`n$($_.Exception.Message)",
                 "Error",
                 [System.Windows.MessageBoxButton]::OK,
                 [System.Windows.MessageBoxImage]::Error
             )
+            return
         }
-    }
-    catch {
-        Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
-        [System.Windows.MessageBox]::Show(
-            "An error occurred:`n`n$($_.Exception.Message)",
-            "Error",
-            [System.Windows.MessageBoxButton]::OK,
-            [System.Windows.MessageBoxImage]::Error
-        )
-    }
-    finally {
-        $window.Cursor = 'Arrow'
-        $scrapeButton.Content = "Scrape"
-        $scrapeButton.IsEnabled = $true
-        $statusText.Text = ""
-        $progressBar.Value = 0
-    }
-})
+
+        try {
+            $window.Cursor = 'Wait'
+            $scrapeButton.Content = "Processing..."
+            $scrapeButton.IsEnabled = $false
+            $progressBar.Value = 0
+            $statusText.Text = "Initializing..."
+
+            # Initialize log file
+            $Global:LogFile = Initialize-LogFile -LogDir $OutDir
+            Write-Log -Message "Starting scraping operation for file: $selectedFile" -Level "INFO"
+
+            # Check force re-scrape option
+            $forceRescrape = [bool]$forceRescrapeChk.IsChecked
+            if ($forceRescrape) {
+                Write-Log -Message "Force re-scrape option enabled" -Level "INFO"
+            }
+
+            # Process the CSV
+            $result = Process-CsvFile -CsvPath $selectedFile -ProgressBar $progressBar -StatusText $statusText -ForceRescrape:$forceRescrape
+
+            if ($result.AlreadyScraped) {
+                [System.Windows.MessageBox]::Show(
+                    $result.Message,
+                    "Already Scraped",
+                    [System.Windows.MessageBoxButton]::OK,
+                    [System.Windows.MessageBoxImage]::Information
+                )
+            } elseif ($result.Success) {
+                $logFileName = Split-Path $Global:LogFile -Leaf
+
+                # Build summary message with blocked URLs if any
+                $summaryMessage = "Scraping completed successfully!`n`n$($result.Message)`n`nFiles created:`n- Backup: $($selectedFile -replace '\.csv$', '_backup.csv')`n- Log file: $logFileName"
+
+                if ($result.BlockedUrls -and $result.BlockedUrls.Count -gt 0) {
+                    $summaryMessage += "`n`n⚠ BLOCKED URLS (require manual review):`n"
+                    foreach ($blockedUrl in $result.BlockedUrls) {
+                        $summaryMessage += "• $blockedUrl`n"
+                    }
+                    $summaryMessage += "`nThese URLs were blocked by anti-bot protection - 403 Forbidden.`nConsider visiting them manually in a browser."
+                }
+
+                [System.Windows.MessageBox]::Show(
+                    $summaryMessage,
+                    "Success",
+                    [System.Windows.MessageBoxButton]::OK,
+                    [System.Windows.MessageBoxImage]::Information
+                )
+
+                # Refresh the file info to show updated status
+                if ($csvCombo.SelectedItem) {
+                    $fileInfo = Get-Item $selectedFile
+                    $csvData = Import-Csv -Path $selectedFile -Encoding UTF8
+                    $isScraped = Test-CsvAlreadyScraped -CsvPath $selectedFile
+
+                    $scrapedStatus = if ($isScraped) { "Already scraped" } else { "Not yet scraped" }
+                    $fileInfoText.Text = "File: $($fileInfo.Name) | Size: $([Math]::Round($fileInfo.Length/1KB, 2)) KB | Rows: $($csvData.Count) | Status: $scrapedStatus"
+
+                    if ($isScraped) {
+                        $fileInfoText.Foreground = "Green"
+                    } else {
+                        $fileInfoText.Foreground = "Gray"
+                    }
+                }
+            } else {
+                [System.Windows.MessageBox]::Show(
+                    "Failed to process CSV:`n`n$($result.Message)",
+                    "Error",
+                    [System.Windows.MessageBoxButton]::OK,
+                    [System.Windows.MessageBoxImage]::Error
+                )
+            }
+        } catch {
+            Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
+            [System.Windows.MessageBox]::Show(
+                "An error occurred:`n`n$($_.Exception.Message)",
+                "Error",
+                [System.Windows.MessageBoxButton]::OK,
+                [System.Windows.MessageBoxImage]::Error
+            )
+        } finally {
+            $window.Cursor = 'Arrow'
+            $scrapeButton.Content = "Scrape"
+            $scrapeButton.IsEnabled = $true
+            $statusText.Text = ""
+            $progressBar.Value = 0
+        }
+    })
 
 $cancelButton.Add_Click({ $window.Close() })
 
+# -------------------- Show Window --------------------
+[void]$window.ShowDialog()
 # -------------------- Show Window --------------------
 [void]$window.ShowDialog()

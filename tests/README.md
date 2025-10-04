@@ -5,11 +5,13 @@ This directory contains comprehensive tests for the CVExcel project, covering al
 ## Test Structure
 
 ### Quick Tests
+
 - **`test-powershell-version.ps1`** - PowerShell version compatibility
 - **`SIMPLE_TEST.ps1`** - Basic CVScraper functionality
 - **`SIMPLE_VENDOR_TEST.ps1`** - Basic vendor module tests
 
 ### Comprehensive Tests
+
 - **`TEST_VENDOR_MODULES.ps1`** - Full vendor module functionality
 - **`TEST_CVSCRAPE_IMPROVEMENTS.ps1`** - CVScraper enhancements
 - **`TEST_SELENIUM_FIXES.ps1`** - Selenium integration
@@ -17,6 +19,7 @@ This directory contains comprehensive tests for the CVExcel project, covering al
 - **`test-cvexcel-integration.ps1`** - Main CVExcel integration
 
 ### Test Infrastructure
+
 - **`run-all-tests.ps1`** - Comprehensive test runner
 - **`test-config.json`** - Test configuration and settings
 - **`test-required-modules.ps1`** - Module dependency checks
@@ -24,6 +27,7 @@ This directory contains comprehensive tests for the CVExcel project, covering al
 ## Running Tests
 
 ### Run All Tests
+
 ```powershell
 # Run complete test suite
 .\tests\run-all-tests.ps1
@@ -42,6 +46,7 @@ This directory contains comprehensive tests for the CVExcel project, covering al
 ```
 
 ### Run Individual Tests
+
 ```powershell
 # Run specific test
 .\tests\SIMPLE_TEST.ps1
@@ -54,6 +59,7 @@ This directory contains comprehensive tests for the CVExcel project, covering al
 ```
 
 ### Test Suites
+
 ```powershell
 # Quick smoke tests
 .\tests\run-all-tests.ps1 -TestFilter "quick"
@@ -77,6 +83,7 @@ The `test-config.json` file contains:
 ## Test Results
 
 Tests generate detailed reports including:
+
 - Pass/Fail status for each test
 - Execution time
 - Error messages and details
@@ -85,11 +92,13 @@ Tests generate detailed reports including:
 ## Prerequisites
 
 ### PowerShell Modules
+
 - PowerShell 5.1 or later
 - WebAdministration (for IIS tests)
 - PSScriptAnalyzer (for code quality tests)
 
 ### Optional Dependencies
+
 - Chrome/Edge browser (for Selenium tests)
 - Network connectivity (for web scraping tests)
 
@@ -98,17 +107,20 @@ Tests generate detailed reports including:
 ### Common Issues
 
 1. **Execution Policy**
+
    ```powershell
    Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
    ```
 
 2. **Missing Modules**
+
    ```powershell
    # Install required modules
    Install-Module -Name PSScriptAnalyzer -Force
    ```
 
 3. **Selenium Issues**
+
    ```powershell
    # Skip selenium tests if browser not available
    .\tests\run-all-tests.ps1 -SkipSelenium
