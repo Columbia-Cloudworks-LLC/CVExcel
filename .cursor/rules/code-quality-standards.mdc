@@ -1,0 +1,53 @@
+---
+description: Code quality standards, testing, and documentation guidelines
+alwaysApply: false
+---
+
+# Code Quality Standards
+
+## Documentation Requirements
+- Include comprehensive help documentation for all public functions
+- Document complex algorithms and business logic
+- Maintain up-to-date README files
+- Document API endpoints and data formats
+- Include examples for all major functions
+- Document error conditions and handling
+
+## Testing Standards
+- Write unit tests for all business logic functions
+- Implement integration tests for vendor-specific scrapers
+- Use Pester for PowerShell testing
+- Achieve minimum 80% code coverage
+- Test error conditions and edge cases
+- Implement automated testing in CI/CD pipeline
+
+## Code Review Process
+- All code changes must be reviewed before merging
+- Use meaningful commit messages following conventional commit format
+- Implement proper branching strategy (feature branches, pull requests)
+- Use static code analysis tools in CI/CD
+- Review for security vulnerabilities and performance issues
+- Ensure all tests pass before merging
+
+## Tools and Automation
+### Required Tools
+- PSScriptAnalyzer for PowerShell code analysis
+- Pester for unit testing
+- Playwright for web automation and testing
+- Git for version control
+- CI/CD pipeline for automated testing and deployment
+
+### Automation Requirements
+- Automated dependency installation and updates
+- Automated security scanning and vulnerability assessment
+- Automated code quality checks and linting
+- Automated test execution and reporting
+- Automated deployment and rollback procedures
+
+## Code Organization
+- Organize code into modules with clear separation of concerns
+- Use `Export-ModuleMember` to control what's exposed from modules
+- Place helper functions in separate files
+- Use classes for complex data structures and vendor-specific logic
+- Keep scripts under 500 lines - break larger scripts into modules
+- Use `#region` and `#endregion` to organize large files

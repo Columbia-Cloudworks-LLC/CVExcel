@@ -1,0 +1,64 @@
+---
+description: PowerShell coding standards and best practices
+globs: ["**/*.ps1"]
+alwaysApply: false
+---
+
+# PowerShell Best Practices
+
+## Naming Conventions
+- Use `Verb-Noun` format for cmdlets and functions (e.g., `Get-CVEData`, `Invoke-WebScraping`)
+- Use PascalCase for class names and properties (e.g., `BaseVendor`, `VendorName`)
+- Use camelCase for variables and parameters (e.g., `$vendorName`, `$logFile`)
+- Use SCREAMING_SNAKE_CASE for constants (e.g., `$DEFAULT_TIMEOUT`)
+- Prefix private methods with underscore (e.g., `_ValidateParameters`)
+
+## Function Design
+- Always use `[CmdletBinding()]` for advanced functions
+- Implement parameter validation using `[ValidateSet()]`, `[ValidateRange()]`, etc.
+- Use `[Parameter(Mandatory=$true)]` for required parameters
+- Include comprehensive help documentation with `.SYNOPSIS`, `.DESCRIPTION`, `.PARAMETER`, `.EXAMPLE`
+- Keep functions focused on a single responsibility
+- Return objects, not strings, when possible
+
+## Error Handling
+- Use `try-catch-finally` blocks for all operations that can fail
+- Set `$ErrorActionPreference = "Stop"` at script/module level
+- Use `-ErrorAction Stop` for specific cmdlets that must not fail silently
+- Log all errors with context information
+- Provide meaningful error messages to users
+- Use `Write-Warning` for non-fatal issues, `Write-Error` for fatal issues
+
+## Security Practices
+- Never hardcode passwords, API keys, or sensitive data
+- Use `SecureString` for password inputs: `Read-Host -AsSecureString -Prompt "Password"`
+- Use `ConvertTo-SecureString` for encrypted strings
+- Implement Just Enough Administration (JEA) where applicable
+- Use the SecretManagement module for credential storage
+- Validate all user inputs to prevent injection attacks
+- Use HTTPS for all web requests
+- Implement proper certificate validation
+
+## Performance Optimization
+- Avoid pipelines inside loops - use bulk operations instead
+- Use `ForEach-Object -Parallel` for CPU-intensive operations
+- Minimize the number of web requests by batching operations
+- Use `Start-Job` or `Start-RunspaceJob` for long-running operations
+- Cache frequently accessed data
+- Use `Measure-Command` to profile performance bottlenecks
+
+## Code Organization
+- Organize code into modules with clear separation of concerns
+- Use `Export-ModuleMember` to control what's exposed from modules
+- Place helper functions in separate files
+- Use classes for complex data structures and vendor-specific logic
+- Keep scripts under 500 lines - break larger scripts into modules
+- Use `#region` and `#endregion` to organize large files
+
+## File and Path Handling
+- Use `Join-Path` for cross-platform path construction
+- Validate file paths before operations
+- Implement proper file locking for concurrent access
+- Use relative paths where possible, absolute paths when necessary
+- Implement proper file cleanup and temporary file management
+- Handle file permission issues gracefully

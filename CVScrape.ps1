@@ -246,17 +246,19 @@ function Get-MSRCPageWithPlaywright {
         }
     }
 
-    $playwright = $null
     try {
-        # Initialize Playwright
-        $playwright = [PlaywrightWrapper]::new("chromium")
+        # Initialize Playwright browser (function-based API)
+        Write-Log -Message "Initializing Playwright browser for MSRC page..." -Level "DEBUG"
+        $initResult = New-PlaywrightBrowser -BrowserType chromium -TimeoutSeconds 30
 
-        if (-not $playwright.Initialize()) {
-            throw "Failed to initialize Playwright browser"
+        if (-not $initResult.Success) {
+            throw "Failed to initialize Playwright browser: $($initResult.Error)"
         }
 
+        Write-Log -Message "Playwright browser initialized successfully" -Level "SUCCESS"
+
         # Navigate to page with extended wait for MSRC content (8 seconds)
-        $result = $playwright.NavigateToPage($Url, 8)
+        $result = Invoke-PlaywrightNavigate -Url $Url -WaitSeconds 8
 
         if ($result.Success) {
             # Validate content quality
@@ -264,7 +266,7 @@ function Get-MSRCPageWithPlaywright {
             $hasGoodContent = $contentSize -gt 10000 -and $result.Content -match '(CVE|vulnerability|security|update|patch|KB)'
 
             if ($hasGoodContent) {
-                Write-Log -Message "Successfully rendered MSRC page with Playwright ($contentSize bytes)" -Level "SUCCESS"
+                Write-Log -Message "Successfully rendered MSRC page with Playwright - ${contentSize} bytes" -Level "SUCCESS"
                 Write-Log -Message "Detected MSRC-specific content in rendered page" -Level "SUCCESS"
 
                 return @{
@@ -274,7 +276,7 @@ function Get-MSRCPageWithPlaywright {
                     Method  = 'Playwright'
                 }
             } else {
-                Write-Log -Message "MSRC page rendered but content appears incomplete ($contentSize bytes)" -Level "WARNING"
+                Write-Log -Message "MSRC page rendered but content appears incomplete - ${contentSize} bytes" -Level "WARNING"
 
                 # Still return the content, but mark as potentially incomplete
                 return @{
@@ -298,9 +300,9 @@ function Get-MSRCPageWithPlaywright {
             Error   = $errorMsg
         }
     } finally {
-        if ($playwright) {
-            $playwright.Dispose()
-        }
+        # Always cleanup browser
+        Close-PlaywrightBrowser
+        Write-Log -Message "Playwright browser closed" -Level "DEBUG"
     }
 }
 
@@ -1318,6 +1320,5 @@ $scrapeButton.Add_Click({
 $cancelButton.Add_Click({ $window.Close() })
 
 # -------------------- Show Window --------------------
-[void]$window.ShowDialog()
-# -------------------- Show Window --------------------
+Refresh-CsvList
 [void]$window.ShowDialog()

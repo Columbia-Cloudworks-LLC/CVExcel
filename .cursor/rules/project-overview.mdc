@@ -1,0 +1,41 @@
+---
+description: CVExcel Project Overview and Core Principles
+alwaysApply: true
+---
+
+# CVExcel Project Overview
+
+## Project Context
+This is a CVE (Common Vulnerabilities and Exposures) data scraping project that:
+- Scrapes vendor advisory pages for vulnerability information
+- Uses PowerShell for automation and data processing
+- Implements Playwright for JavaScript-heavy web scraping
+- Follows NIST security guidelines for secure coding practices
+- Uses modular vendor-specific scraping classes
+
+## Core Principles
+1. **Security First** - All code must follow NIST security guidelines
+2. **PowerShell Best Practices** - Follow Microsoft's recommended patterns
+3. **Playwright Excellence** - Use modern testing and automation practices
+4. **Maintainability** - Write clean, documented, and modular code
+5. **Error Handling** - Implement comprehensive error handling and logging
+
+## Project Structure
+- `vendors/` - Modular vendor-specific scraping classes
+- `tests/` - Automated testing suite using Pester and Playwright
+- `out/` - Output directory for scraped data (CSV format)
+- `docs/` - Project documentation and guides
+- `config/` - Configuration files and settings
+
+## Key Technologies
+- **PowerShell** - Primary scripting language with advanced function patterns
+- **Playwright** - Web automation and testing framework
+- **PSScriptAnalyzer** - Code quality and security analysis
+- **Pester** - PowerShell testing framework
+
+## Security Requirements
+- Follow NIST SP 800-53 security controls
+- Implement proper input validation and sanitization
+- Use secure coding practices for all web scraping operations
+- Maintain audit trails and comprehensive logging
+- Handle sensitive data according to security guidelines

@@ -1,0 +1,64 @@
+---
+description: Vendor module design patterns and architecture guidelines
+globs: ["**/vendors/**/*", "**/Vendor*.ps1"]
+alwaysApply: false
+---
+
+# Vendor Module Design Guidelines
+
+## Class Architecture
+- Use inheritance properly - vendor classes should extend BaseVendor
+- Implement proper encapsulation - private methods should be truly private
+- Use composition over inheritance where appropriate
+- Implement proper interface contracts
+- Use dependency injection for better testability
+- Follow SOLID principles in class design
+
+## BaseVendor Implementation
+- All vendor classes must inherit from BaseVendor
+- Implement required abstract methods: `Get-AdvisoryData`, `Parse-AdvisoryContent`
+- Override virtual methods only when necessary
+- Maintain consistent method signatures across vendor implementations
+- Implement proper error handling in all vendor methods
+
+## Vendor-Specific Classes
+- Create separate classes for each vendor (MicrosoftVendor, IBMVendor, etc.)
+- Implement vendor-specific parsing logic in dedicated methods
+- Handle vendor-specific authentication and session management
+- Implement vendor-specific error handling and retry logic
+- Maintain vendor-specific configuration and settings
+
+## Data Flow and Processing
+- Implement consistent data flow patterns across all vendors
+- Use standardized data structures for advisory information
+- Implement proper data validation at vendor level
+- Handle vendor-specific data formats and structures
+- Implement consistent error reporting across vendors
+
+## Configuration Management
+- Use centralized configuration for vendor settings
+- Implement environment-specific configurations
+- Handle vendor-specific API endpoints and parameters
+- Implement proper configuration validation
+- Use secure storage for vendor credentials and API keys
+
+## Testing and Quality Assurance
+- Write unit tests for all vendor-specific logic
+- Implement integration tests for vendor scraping functionality
+- Test error handling and edge cases for each vendor
+- Implement mock objects for testing without external dependencies
+- Achieve minimum 80% code coverage for vendor modules
+
+## Error Handling and Logging
+- Implement vendor-specific error handling strategies
+- Log all vendor operations with appropriate detail levels
+- Handle vendor-specific error responses and status codes
+- Implement proper retry logic for transient vendor failures
+- Provide meaningful error messages for vendor-specific issues
+
+## Performance and Optimization
+- Implement vendor-specific performance optimizations
+- Use appropriate delays and rate limiting for each vendor
+- Implement caching strategies where appropriate
+- Monitor vendor response times and implement alerts
+- Optimize vendor-specific data processing pipelines

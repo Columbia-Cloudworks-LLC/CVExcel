@@ -1,0 +1,62 @@
+---
+description: Playwright testing and automation best practices
+globs: ["**/test*.ps1", "**/tests/**/*", "**/*test*.ps1"]
+alwaysApply: false
+---
+
+# Playwright Best Practices
+
+## Test Design
+- Write tests that focus on user-visible behavior, not implementation details
+- Use descriptive test names that explain what is being tested
+- Keep tests independent - each test should be able to run in isolation
+- Use page object model pattern for complex applications
+- Implement proper test data management and cleanup
+
+## Locator Strategy
+- Use semantic locators over brittle CSS/XPath selectors
+- Prefer `page.getByRole()`, `page.getByText()`, `page.getByLabel()`
+- Use `page.getByTestId()` for elements specifically designed for testing
+- Avoid locators that depend on styling or layout
+- Use `data-testid` attributes for critical UI elements
+- Implement locator strategies that are resilient to UI changes
+
+## Assertions and Waiting
+- Use web-first assertions: `expect(page.getByText('Success')).toBeVisible()`
+- Avoid hard waits (`page.waitForTimeout()`) - use proper waiting strategies
+- Use `page.waitForLoadState()` for navigation
+- Implement custom wait conditions for complex scenarios
+- Use soft assertions for non-critical validations
+- Assert on the final state, not intermediate states
+
+## Error Handling and Debugging
+- Implement comprehensive error handling with meaningful messages
+- Use `page.screenshot()` and `page.video()` for debugging failed tests
+- Implement retry mechanisms for flaky operations
+- Use `page.pause()` for debugging interactive sessions
+- Log relevant context information when tests fail
+- Use `--headed` mode for visual debugging
+
+## Performance and Reliability
+- Run tests in parallel to reduce execution time
+- Use test sharding for large test suites
+- Implement proper browser cleanup and resource management
+- Use `--reuse-context` for faster test execution when appropriate
+- Monitor test execution times and optimize slow tests
+- Implement proper timeout configurations
+
+## Configuration and Environment
+- Use environment-specific configuration files
+- Implement proper browser and context configuration
+- Use different configurations for different environments (dev, staging, prod)
+- Implement proper test isolation and cleanup
+- Use CI/CD-friendly configurations
+- Implement proper artifact collection and reporting
+
+## Web Scraping Ethics (for CVE data collection)
+- Respect robots.txt and rate limiting
+- Implement proper delays between requests
+- Use appropriate User-Agent headers
+- Handle HTTP errors gracefully (403, 429, 500, etc.)
+- Implement retry logic with exponential backoff
+- Monitor for changes in target website structure

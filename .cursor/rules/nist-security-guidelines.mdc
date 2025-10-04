@@ -1,0 +1,60 @@
+---
+description: NIST security guidelines and secure coding practices
+alwaysApply: true
+---
+
+# NIST Security Guidelines
+
+## Secure Coding Standards
+- Implement input validation for all user-provided data
+- Use parameterized queries/prepared statements to prevent injection
+- Validate file paths and URLs to prevent directory traversal
+- Sanitize output to prevent XSS attacks
+- Use cryptographically secure random number generators
+- Implement proper session management and timeout controls
+- Log security-relevant events for audit trails
+
+## Access Control
+- Follow principle of least privilege - grant minimum necessary permissions
+- Implement role-based access control where applicable
+- Use strong authentication mechanisms
+- Implement proper authorization checks before sensitive operations
+- Use secure defaults - deny access by default, grant explicitly
+
+## Data Protection
+- Encrypt sensitive data at rest and in transit
+- Use industry-standard encryption algorithms (AES-256, RSA-2048+)
+- Implement proper key management practices
+- Use secure random number generation for cryptographic operations
+- Implement data retention and disposal policies
+- Mask or redact sensitive information in logs
+
+## Vulnerability Management
+- Keep all dependencies and frameworks updated
+- Use static code analysis tools (PSScriptAnalyzer, SonarQube)
+- Implement automated security testing in CI/CD pipelines
+- Perform regular security code reviews
+- Use dependency scanning tools to identify vulnerable packages
+- Implement proper error handling to prevent information disclosure
+
+## NIST Framework Compliance
+- Implement Identify, Protect, Detect, Respond, Recover functions
+- Follow NIST SP 800-53 security controls where applicable
+- Implement proper risk management practices
+- Maintain security documentation and procedures
+- Regular security assessments and updates
+
+## Industry Standards
+- Follow OWASP secure coding practices
+- Implement proper logging and monitoring
+- Use industry-standard encryption and security protocols
+- Follow data privacy regulations (GDPR, CCPA) where applicable
+- Implement proper incident response procedures
+
+## Logging and Monitoring
+- Implement structured logging with consistent format
+- Include timestamps, log levels, and context information
+- Log all significant operations (start, end, errors, warnings)
+- Implement log rotation and cleanup
+- Use appropriate log levels (DEBUG, INFO, WARN, ERROR, FATAL)
+- Include correlation IDs for tracking related operations
