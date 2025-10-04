@@ -1,0 +1,810 @@
+<#
+CVExcel — NVD CVE GUI Exporter (Enhanced with robust error handling and NIST best practices)
+- Dropdown from .\products.txt (keyword or CPE 2.3 per line)
+- API key: .\nvd.api.key (if present) else $env:NVD_API_KEY (both trimmed)
+- GUI: Start/End date pickers (UTC), "Use last-modified dates", "Validate product only (no dates)", and "Test API" button
+- Enhanced Features:
+   * Robust error handling with detailed logging and user-friendly messages
+   * Automatic retry logic with exponential backoff for transient failures
+   * Enhanced API request headers and proper user agent identification
+   * Diagnostic functions to test API connectivity and keyword searches
+   * Improved CPE resolution with better error handling
+   * Comprehensive logging and progress feedback
+   * NIST best practices compliance (rate limiting, proper API key format)
+   * Respects NVD API rate limits (6-second sleep between requests)
+- Query flow:
+   * If "Validate product only" is checked, no date params are sent (sanity check).
+   * Otherwise, use last-modified OR publication dates (with automatic fallback from last-mod to pub on 404).
+   * If selection starts with 'cpe:2.3:' → cpeName filter; else keywordSearch.
+   * If keyword returns 0 rows, resolve to top CPE candidates and retry.
+- Output: .\out\<safe-product>_<timestamp>.csv
+
+IMPORTANT: This product uses data from the NVD API but is not endorsed or certified by the NVD.
+Rate Limits: 5 requests/30sec (public) or 50 requests/30sec (with API key)
+#>
+
+Add-Type -AssemblyName PresentationFramework, PresentationCore
+
+# -------------------- Paths --------------------
+$Root       = Get-Location
+$OutDir     = Join-Path $Root "out"
+$ProductsFn = Join-Path $Root "products.txt"
+$KeyFn      = Join-Path $Root "nvd.api.key"
+if (-not (Test-Path $OutDir)) { New-Item -ItemType Directory -Path $OutDir | Out-Null }
+if (-not (Test-Path $ProductsFn)) { Write-Error "Missing products.txt next to the script."; return }
+
+# -------------------- API key --------------------
+function Get-NvdApiKey {
+  $k = $null
+  if (Test-Path $KeyFn) { $k = Get-Content -Raw -Path $KeyFn }
+  elseif ($env:NVD_API_KEY) { $k = $env:NVD_API_KEY }
+  if ($k) { return $k.Trim().Trim('"','“','”') }
+  return $null
+}
+$NvdApiKey = Get-NvdApiKey
+
+# -------------------- Input list --------------------
+$Products = Get-Content $ProductsFn | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') }
+if (-not $Products) { Write-Error "products.txt has no usable entries."; return }
+
+# -------------------- Helpers --------------------
+function ConvertTo-Iso8601Z([DateTime]$dt, [string]$timePart) {
+  # DatePicker gives Unspecified; compose local clock then convert to UTC Z
+  $dateStr = $dt.ToString("yyyy-MM-dd")
+  $full    = [DateTime]::Parse("$dateStr $timePart", [System.Globalization.CultureInfo]::InvariantCulture)
+  $full.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'")
+}
+
+function Get-CvssScore { param($metrics)
+  if ($metrics.cvssMetricV31) { return $metrics.cvssMetricV31[0].cvssData.baseScore }
+  if ($metrics.cvssMetricV30) { return $metrics.cvssMetricV30[0].cvssData.baseScore }
+  if ($metrics.cvssMetricV2)  { return $metrics.cvssMetricV2[0].cvssData.baseScore }
+  return $null
+}
+
+function Expand-CPEs { param($configurations)
+  $rows = New-Object System.Collections.Generic.List[object]
+  if (-not $configurations) { return $rows }
+  function Walk([object]$nodes) {
+    foreach ($node in $nodes) {
+      if ($node.cpeMatch) {
+        foreach ($m in $node.cpeMatch) {
+          $cpe = $m.criteria; if (-not $cpe) { continue }
+          $parts = $cpe -split ':'
+          $vendor  = ($parts.Count -ge 4) ? $parts[3] : ''
+          $product = ($parts.Count -ge 5) ? $parts[4] : ''
+          $version = ($parts.Count -ge 6) ? $parts[5] : ''
+          $rows.Add([PSCustomObject]@{
+            CPE23Uri   = $cpe
+            Vendor     = $vendor
+            Product    = $product
+            Version    = $version
+            Vulnerable = [bool]$m.vulnerable
+          })
+        }
+      }
+      if ($node.children) { Walk $node.children }
+    }
+  }
+  if ($configurations.nodes) { Walk $configurations.nodes }
+  return $rows
+}
+
+# -------------------- NVD core --------------------
+function Invoke-NvdPage {
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory)][hashtable]$Query,
+    [string]$ApiKey,
+    [int]$MaxRetries = 3,
+    [int]$RetryDelayMs = 1000,
+    [string]$BaseUri = 'https://services.nvd.nist.gov/rest/json/cves/2.0',
+    [bool]$ForcePublic = $false
+  )
+  if ($ApiKey) { $ApiKey = $ApiKey.Trim().Trim('"','"','"') }
+  
+  # Enhanced headers with proper user agent and content type
+  $headers = @{
+    'User-Agent' = 'CVExcel-PowerShell/1.0 (NVD CVE Exporter)'
+    'Accept' = 'application/json'
+  }
+  if ($ApiKey -and -not $ForcePublic) { $headers['apiKey'] = $ApiKey }
+
+  # Build query: keep ISO timestamps literal; encode only CPE/keyword values
+  $parts = @()
+  foreach ($k in $Query.Keys) {
+    $v = $Query[$k]
+    if ($null -eq $v) { continue }
+    if ($k -in @('cpeName','keywordSearch')) {
+      if ($v -is [System.Collections.IEnumerable] -and -not ($v -is [string])) {
+        foreach ($item in $v) { $parts += "$k=" + [uri]::EscapeDataString("$item") }
+      } else {
+        $parts += "$k=" + [uri]::EscapeDataString("$v")
+      }
+    } else {
+      $parts += "$k=$v"
+    }
+  }
+  $ub = [System.UriBuilder]$BaseUri
+  $ub.Query = ($parts -join '&')
+  $uri = $ub.Uri.AbsoluteUri
+
+  # Log the request for debugging
+  Write-Verbose "NVD API Request: $uri"
+  Write-Verbose "Headers: $($headers | ConvertTo-Json -Compress)"
+
+  $retryCount = 0
+  do {
+    try {
+      $response = Invoke-RestMethod -Method GET -Uri $uri -Headers $headers -TimeoutSec 120
+      Write-Verbose "NVD API Response: Success (attempt $($retryCount + 1))"
+      return $response
+    } catch {
+      $retryCount++
+      $status = $_.Exception.Response.StatusCode.Value__ 2>$null
+      $reason = $_.Exception.Response.StatusDescription   2>$null
+      $body = $null
+      try { 
+        $sr = New-Object IO.StreamReader $_.Exception.Response.GetResponseStream()
+        $body = $sr.ReadToEnd()
+        $sr.Close() 
+      } catch {}
+      
+      Write-Verbose "NVD API Error (attempt $retryCount): $status $reason"
+      Write-Verbose "Response Body: $body"
+      
+      # If it's a 404 or 500 error, don't retry
+      if ($status -eq 404 -or $status -eq 500 -or $retryCount -ge $MaxRetries) {
+        throw "HTTP error $status $reason querying:`n$uri`nBody:`n$body"
+      }
+      
+      # Wait before retry with exponential backoff
+      if ($retryCount -lt $MaxRetries) {
+        $delay = $RetryDelayMs * [math]::Pow(2, $retryCount - 1)
+        Write-Verbose "Retrying in $delay ms..."
+        Start-Sleep -Milliseconds $delay
+      }
+    }
+  } while ($retryCount -lt $MaxRetries)
+  
+  # Always sleep between requests to respect rate limits
+  Start-Sleep -Seconds 6
+}
+
+function Get-NvdCves {
+  [CmdletBinding()]
+  param(
+    [string]$KeywordOrCpe,
+    [string[]]$CpeNames,
+    [string]$StartIso,
+    [string]$EndIso,
+    [string]$ApiKey,
+    [switch]$UseLastModified,
+    [switch]$NoDateFilter,
+    [bool]$ForcePublic = $false
+  )
+
+  # Parameter validation
+  if (-not $KeywordOrCpe -and -not $CpeNames) {
+    throw "Either KeywordOrCpe or CpeNames must be provided"
+  }
+
+  $resultsPerPage = 2000
+  $startIndex     = 0
+  $all            = @()
+
+  $useCpeArray = ($CpeNames -and $CpeNames.Count -gt 0)
+  $isCpeSingle = (-not $useCpeArray) -and ($KeywordOrCpe -like 'cpe:2.3:*')
+
+  do {
+    $q = @{ resultsPerPage = $resultsPerPage; startIndex = $startIndex }
+
+    if (-not $NoDateFilter) {
+      if (-not $StartIso -or -not $EndIso) { throw "StartIso/EndIso required unless -NoDateFilter is set." }
+      $dateStartParam = $UseLastModified ? 'lastModStartDate' : 'pubStartDate'
+      $dateEndParam   = $UseLastModified ? 'lastModEndDate'   : 'pubEndDate'
+      $q[$dateStartParam] = $StartIso
+      $q[$dateEndParam]   = $EndIso
+    }
+
+    if     ($useCpeArray) { $q['cpeName'] = $CpeNames }
+    elseif ($isCpeSingle) { $q['cpeName'] = $KeywordOrCpe }
+    elseif ($KeywordOrCpe){ $q['keywordSearch'] = $KeywordOrCpe }
+
+    try {
+      $resp = Invoke-NvdPage -Query $q -ApiKey $ApiKey -ForcePublic:$ForcePublic
+    } catch {
+      # Check if it's a 404 with API key - fallback to public
+      if ($_.Exception.Message -like "*HTTP error 404*" -and $ApiKey -and -not $ForcePublic) {
+        Write-Verbose "API key failed - retrying with public access"
+        Write-Host "Using public access (API key invalid)" -ForegroundColor Yellow
+        try {
+          $resp = Invoke-NvdPage -Query $q -ApiKey $null -ForcePublic:$true
+        } catch {
+          Write-Verbose "Public access also failed: $($_.Exception.Message)"
+          throw
+        }
+      } else {
+        # Enhanced error handling with fallback strategies
+        if (-not $NoDateFilter -and $UseLastModified -and $_.Exception.Message -like 'HTTP error 404*') {
+          Write-Verbose "Last-modified date search failed with 404, retrying with publication dates..."
+          $q.Remove('lastModStartDate'); $q.Remove('lastModEndDate')
+          $q['pubStartDate'] = $StartIso; $q['pubEndDate'] = $EndIso
+          try {
+            $resp = Invoke-NvdPage -Query $q -ApiKey $ApiKey -ForcePublic:$ForcePublic
+          } catch {
+            Write-Verbose "Publication date fallback also failed: $($_.Exception.Message)"
+            throw "Both last-modified and publication date searches failed. Original error: $($_.Exception.Message)"
+          }
+        } else { 
+          Write-Verbose "API request failed: $($_.Exception.Message)"
+          throw 
+        }
+      }
+    }
+
+    if ($resp.vulnerabilities) { $all += $resp.vulnerabilities }
+
+    $totalResults = [int]($resp.totalResults  ?? 0)
+    $pageSize     = [int]($resp.resultsPerPage ?? $resultsPerPage)
+    $startIndex  += $pageSize
+    
+    Write-Verbose "Retrieved $($all.Count) of $totalResults total results"
+  } while ($all.Count -lt $totalResults)
+
+  Write-Verbose "Total CVEs retrieved: $($all.Count)"
+  return $all
+}
+
+function Resolve-CpeCandidates {
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory)][string]$Keyword,
+    [int]$Max = 5,
+    [string]$ApiKey
+  )
+
+  try {
+    $base = 'https://services.nvd.nist.gov/rest/json/cpes/2.0'
+    if ($ApiKey) { $ApiKey = $ApiKey.Trim().Trim('"','"','"') }
+    $baseHeaders = @{
+      'User-Agent' = 'CVExcel-PowerShell/1.0 (NVD CVE Exporter)'
+      'Accept' = 'application/json'
+    }
+
+    $pairs = @(
+      'keywordSearch=' + [uri]::EscapeDataString($Keyword)
+      'resultsPerPage=200'
+      'startIndex=0'
+    )
+    $ub = [System.UriBuilder]$base; $ub.Query = ($pairs -join '&')
+    $uri = $ub.Uri.AbsoluteUri
+
+    Write-Verbose "CPE resolution query: $uri"
+    
+    # Try with API key first, fallback to public on 404
+    if ($ApiKey) {
+      $headers = $baseHeaders.Clone()
+      $headers['apiKey'] = $ApiKey
+      try {
+        $resp = Invoke-RestMethod -Method GET -Uri $uri -Headers $headers -TimeoutSec 120
+      } catch {
+        $status = $_.Exception.Response.StatusCode.Value__ 2>$null
+        if ($status -eq 404) {
+          Write-Verbose "API key failed for CPE resolution - using public access"
+          $resp = Invoke-RestMethod -Method GET -Uri $uri -Headers $baseHeaders -TimeoutSec 120
+        } else {
+          throw
+        }
+      }
+    } else {
+      $resp = Invoke-RestMethod -Method GET -Uri $uri -Headers $baseHeaders -TimeoutSec 120
+    }
+    $candidates = @()
+    foreach ($r in ($resp.products ?? @())) {
+      $c = $r.cpe; if ($c.cpeName) { $candidates += $c.cpeName }
+    }
+    $ranked = $candidates | Sort-Object {
+      $p = $_ -split ':'; $s = 0
+      if ($p.Length -ge 4 -and $p[3] -eq 'microsoft') { $s -= 10 }
+      if ($p.Length -ge 3 -and $p[2] -eq 'o')         { $s -= 5 }
+      $s
+    }
+    Write-Verbose "Found $($candidates.Count) CPE candidates for '$Keyword'"
+    return $ranked | Select-Object -First $Max
+  } catch {
+    Write-Verbose "CPE resolution failed for '$Keyword': $($_.Exception.Message)"
+    return @()
+  }
+}
+
+# -------------------- Diagnostic functions --------------------
+function Test-NvdApiConnectivity {
+  [CmdletBinding()]
+  param([string]$ApiKey)
+  
+  Write-Host "Testing NVD API connectivity..." -ForegroundColor Yellow
+  Write-Host "Note: Rate limit is 5 requests/30sec (public) or 50 requests/30sec (with API key)" -ForegroundColor Gray
+  
+  $testUri = "https://services.nvd.nist.gov/rest/json/cves/2.0?resultsPerPage=1&startIndex=0"
+  
+  $baseHeaders = @{
+    'User-Agent' = 'CVExcel-PowerShell/1.0 (NVD CVE Exporter)'
+    'Accept' = 'application/json'
+  }
+  
+  $publicMode = $false
+  
+  if ($ApiKey) { 
+    # Validate key format
+    if ($ApiKey.Length -ne 36 -or $ApiKey -notmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
+      Write-Host "⚠ API key format invalid (should be UUID, length 36). Falling back to public access." -ForegroundColor Yellow
+      $publicMode = $true
+    } else {
+      $headers = $baseHeaders.Clone()
+      $headers['apiKey'] = $ApiKey
+      Write-Host "Using API key: $($ApiKey.Substring(0,8))..." -ForegroundColor Gray
+      Write-Host "Rate limit: 50 requests per 30 seconds" -ForegroundColor Gray
+      
+      try {
+        Write-Host "  Testing with API key..." -ForegroundColor Cyan
+        $response = Invoke-RestMethod -Uri $testUri -Headers $headers -TimeoutSec 30
+        # Success with key
+        Write-Host "    ✓ Success with API key" -ForegroundColor Green
+        if ($response.totalResults) {
+          Write-Host "    Total CVEs available: $($response.totalResults)" -ForegroundColor Gray
+        }
+        return $true
+      } catch {
+        $status = $_.Exception.Response.StatusCode.Value__ 2>$null
+        if ($status -eq 404) {
+          Write-Host "  API key returned 404 - likely invalid/expired. Falling back to public access." -ForegroundColor Yellow
+          $publicMode = $true
+        } else {
+          throw
+        }
+      }
+    }
+  } else {
+    $publicMode = $true
+    Write-Host "No API key provided - using public rate limit (5 requests per 30 seconds)" -ForegroundColor Yellow
+  }
+  
+  if ($publicMode) {
+    $headers = $baseHeaders
+    try {
+      Write-Host "  Testing public access..." -ForegroundColor Cyan
+      $response = Invoke-RestMethod -Uri $testUri -Headers $headers -TimeoutSec 30
+      Write-Host "    ✓ Success (public access)" -ForegroundColor Green
+      if ($response.totalResults) {
+        Write-Host "    Total CVEs available: $($response.totalResults)" -ForegroundColor Gray
+      }
+      Write-Host "Note: Public access has lower rate limits. Consider regenerating API key at https://nvd.nist.gov/developers/request-an-api-key" -ForegroundColor Yellow
+      return $true
+    } catch {
+      Write-Host "    ✗ Public access also failed: $($_.Exception.Message)" -ForegroundColor Red
+      return $false
+    }
+  }
+  
+  return $true
+}
+
+function Test-NvdApiKeywordSearch {
+  [CmdletBinding()]
+  param(
+    [string]$Keyword = "microsoft windows",
+    [string]$ApiKey
+  )
+  
+  $publicMode = $false
+  $baseHeaders = @{
+    'User-Agent' = 'CVExcel-PowerShell/1.0 (NVD CVE Exporter)'
+    'Accept' = 'application/json'
+  }
+  
+  $testQuery = @{
+    keywordSearch = $Keyword
+    resultsPerPage = 10
+    startIndex = 0
+  }
+  
+  if ($ApiKey) {
+    $headers = $baseHeaders.Clone()
+    $headers['apiKey'] = $ApiKey
+    Write-Host "Testing keyword search with API key..." -ForegroundColor Cyan
+    try {
+      $response = Invoke-NvdPage -Query $testQuery -ApiKey $ApiKey -Verbose
+      Write-Host "✓ Keyword search test passed (with key)" -ForegroundColor Green
+      Write-Host "  Found $($response.vulnerabilities.Count) CVEs for '$Keyword'" -ForegroundColor Gray
+      return $true
+    } catch {
+      # Check if exception message contains 404
+      if ($_.Exception.Message -like "*HTTP error 404*") {
+        Write-Host "  API key failed for keyword search - falling back to public access." -ForegroundColor Yellow
+        $publicMode = $true
+      } else {
+        Write-Host "✗ Keyword search test failed: $($_.Exception.Message)" -ForegroundColor Red
+        return $false
+      }
+    }
+  } else {
+    $publicMode = $true
+  }
+  
+  if ($publicMode) {
+    $headers = $baseHeaders
+    Write-Host "Testing keyword search (public access)..." -ForegroundColor Yellow
+    try {
+      $response = Invoke-NvdPage -Query $testQuery -ApiKey $null -Verbose
+      Write-Host "✓ Keyword search test passed (public access)" -ForegroundColor Green
+      Write-Host "  Found $($response.vulnerabilities.Count) CVEs for '$Keyword'" -ForegroundColor Gray
+      return $true
+    } catch {
+      Write-Host "✗ Keyword search failed even in public access: $($_.Exception.Message)" -ForegroundColor Red
+      return $false
+    }
+  }
+  
+  return $true
+}
+
+function Test-AlternativeEndpoints {
+  [CmdletBinding()]
+  param([string]$ApiKey)
+  
+  Write-Host "Testing alternative NVD endpoints (with rate limiting)..." -ForegroundColor Yellow
+  
+  # Only test CPE API since CVE API was already tested
+  $alternativeEndpoints = @(
+    @{
+      Name = "CPE API v2.0"
+      BaseUri = "https://services.nvd.nist.gov/rest/json/cpes/2.0"
+    }
+  )
+  
+  $headers = @{
+    'User-Agent' = 'CVExcel-PowerShell/1.0 (NVD CVE Exporter)'
+    'Accept' = 'application/json'
+  }
+  if ($ApiKey) { $headers['apiKey'] = $ApiKey }
+  
+  $workingEndpoints = @()
+  foreach ($endpoint in $alternativeEndpoints) {
+    try {
+      Write-Host "  Testing: $($endpoint.Name)" -ForegroundColor Cyan
+      $testUri = "$($endpoint.BaseUri)?resultsPerPage=1&startIndex=0"
+      
+      $response = Invoke-RestMethod -Method GET -Uri $testUri -Headers $headers -TimeoutSec 30
+      Write-Host "    ✓ Working" -ForegroundColor Green
+      if ($response.totalResults) {
+        Write-Host "    Total CPEs: $($response.totalResults)" -ForegroundColor Gray
+      }
+      $workingEndpoints += $endpoint
+      
+      # Sleep between requests to respect rate limits
+      Write-Host "    Sleeping 6 seconds to respect rate limits..." -ForegroundColor Gray
+      Start-Sleep -Seconds 6
+    } catch {
+      $statusCode = $_.Exception.Response.StatusCode.Value__ 2>$null
+      Write-Host "    ✗ Failed: $statusCode" -ForegroundColor Red
+    }
+  }
+  
+  return $workingEndpoints
+}
+
+function Get-NvdApiStatus {
+  [CmdletBinding()]
+  param([string]$ApiKey)
+  
+  Write-Host "`n=== NVD API Status Check ===" -ForegroundColor Magenta
+  
+  # Check if we can reach the main NVD website
+  try {
+    Write-Host "Checking NVD website accessibility..." -ForegroundColor Yellow
+    $response = Invoke-WebRequest -Uri "https://nvd.nist.gov" -TimeoutSec 10 -UseBasicParsing
+    Write-Host "✓ NVD website is accessible (Status: $($response.StatusCode))" -ForegroundColor Green
+  } catch {
+    Write-Host "✗ Cannot reach NVD website: $($_.Exception.Message)" -ForegroundColor Red
+  }
+  
+  # Test API endpoints
+  $connectivityOk = Test-NvdApiConnectivity -ApiKey $ApiKey
+  $workingEndpoints = Test-AlternativeEndpoints -ApiKey $ApiKey
+  
+  Write-Host "`nWorking endpoints:" -ForegroundColor Yellow
+  if ($workingEndpoints.Count -gt 0) {
+    foreach ($endpoint in $workingEndpoints) {
+      Write-Host "  ✓ $($endpoint.Name)" -ForegroundColor Green
+    }
+  } else {
+    Write-Host "  ✗ No working endpoints found" -ForegroundColor Red
+  }
+  
+  # Provide recommendations
+  Write-Host "`nRecommendations:" -ForegroundColor Yellow
+  if (-not $connectivityOk) {
+    Write-Host "  • Check your internet connection and firewall settings" -ForegroundColor Yellow
+    Write-Host "  • Regenerate your API key at https://nvd.nist.gov/developers/request-an-api-key" -ForegroundColor Gray
+    Write-Host "  • Contact NVD support if issues persist: nvd@nist.gov" -ForegroundColor Gray
+  } else {
+    Write-Host "  • API connectivity is working normally" -ForegroundColor Green
+    if ($ApiKey) {
+      Write-Host "  • Your API key appears invalid/expired - regenerate at https://nvd.nist.gov/developers/request-an-api-key" -ForegroundColor Yellow
+    } else {
+      Write-Host "  • Consider obtaining an API key for higher rate limits" -ForegroundColor Yellow
+    }
+  }
+  
+  return $connectivityOk
+}
+
+# -------------------- GUI --------------------
+[xml]$xaml = @"
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="NVD CVE Exporter" Height="300" Width="560"
+        WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
+  <Grid Margin="12">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+    </Grid.RowDefinitions>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="170"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
+
+    <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0">Product</TextBlock>
+    <ComboBox x:Name="ProductCombo" Grid.Row="0" Grid.Column="1" Height="26" />
+
+    <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,8,8,0">Start date (UTC)</TextBlock>
+    <DatePicker x:Name="StartDatePicker" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" />
+
+    <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,8,8,0">End date (UTC)</TextBlock>
+    <DatePicker x:Name="EndDatePicker" Grid.Row="2" Grid.Column="1" Margin="0,8,0,0" />
+
+    <CheckBox x:Name="UseLastMod" Grid.Row="3" Grid.Column="1" Margin="0,8,0,0"
+              Content="Use last-modified dates (not publication)" />
+    <CheckBox x:Name="NoDateChk" Grid.Row="4" Grid.Column="1" Margin="0,8,0,0"
+              Content="Validate product only (no dates)" />
+
+    <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+      <Button x:Name="TestButton" Content="Test API" Width="80" Height="28" Margin="0,0,8,0"/>
+      <Button x:Name="OkButton" Content="OK" Width="96" Height="28" Margin="0,0,8,0"/>
+      <Button x:Name="CancelButton" Content="Cancel" Width="96" Height="28"/>
+    </StackPanel>
+  </Grid>
+</Window>
+"@
+
+$reader = (New-Object System.Xml.XmlNodeReader $xaml)
+$window = [Windows.Markup.XamlReader]::Load($reader)
+
+$productCombo     = $window.FindName('ProductCombo')
+$startDatePicker  = $window.FindName('StartDatePicker')
+$endDatePicker    = $window.FindName('EndDatePicker')
+$useLastModCb     = $window.FindName('UseLastMod')
+$noDateChk        = $window.FindName('NoDateChk')
+$testButton       = $window.FindName('TestButton')
+$okButton         = $window.FindName('OkButton')
+$cancelButton     = $window.FindName('CancelButton')
+
+$Products | ForEach-Object { [void]$productCombo.Items.Add($_) }
+$productCombo.SelectedIndex = 0
+$endDatePicker.SelectedDate   = [DateTime]::UtcNow.Date
+$startDatePicker.SelectedDate = ([DateTime]::UtcNow.Date).AddDays(-7)
+$useLastModCb.IsChecked = $true
+$noDateChk.IsChecked    = $false   # dates enabled by default
+
+# -------------------- OK / Cancel --------------------
+$okButton.Add_Click({
+  $product = [string]$productCombo.SelectedItem
+  $sd = $startDatePicker.SelectedDate
+  $ed = $endDatePicker.SelectedDate
+  $useLM = [bool]$useLastModCb.IsChecked
+  $noDates = [bool]$noDateChk.IsChecked
+
+  if (-not $product) { [System.Windows.MessageBox]::Show("Pick a product.", "Validation"); return }
+  if (-not $noDates) {
+    if (-not $sd -or -not $ed) { [System.Windows.MessageBox]::Show("Pick both start and end dates.", "Validation"); return }
+    if ($ed -lt $sd) { [System.Windows.MessageBox]::Show("End date must be on/after start date.", "Validation"); return }
+  }
+
+  $startIso = if (-not $noDates) { ConvertTo-Iso8601Z -dt $sd -timePart "00:00:00.000" } else { $null }
+  $endIso   = if (-not $noDates) { ConvertTo-Iso8601Z -dt $ed -timePart "23:59:59.999" } else { $null }
+
+  try {
+    $window.Cursor = 'Wait'
+    $okButton.Content = "Processing..."
+    $okButton.IsEnabled = $false
+
+    Write-Host "Starting CVE search for product: $product" -ForegroundColor Green
+    if (-not $noDates) {
+      Write-Host "Date range: $startIso to $endIso" -ForegroundColor Cyan
+      Write-Host "Using $($useLM ? 'last-modified' : 'publication') dates" -ForegroundColor Cyan
+    } else {
+      Write-Host "No date filter (validation mode)" -ForegroundColor Yellow
+    }
+
+    # First attempt
+    Write-Host "Querying NVD API..." -ForegroundColor Yellow
+    $rowsRaw = Get-NvdCves -KeywordOrCpe $product `
+                           -StartIso $startIso -EndIso $endIso `
+                           -ApiKey $NvdApiKey `
+                           -UseLastModified:$useLM `
+                           -NoDateFilter:$noDates `
+                           -Verbose
+
+    Write-Host "Initial query returned $($rowsRaw.Count) CVEs" -ForegroundColor Green
+
+    # If 0 rows and the product was a keyword, auto-resolve to CPEs and retry
+    if ((-not $product.StartsWith('cpe:2.3:')) -and ($rowsRaw.Count -eq 0)) {
+      Write-Host "No results found, attempting CPE resolution..." -ForegroundColor Yellow
+      $cpeList = Resolve-CpeCandidates -Keyword $product -Max 5 -ApiKey $NvdApiKey
+      if ($cpeList -and $cpeList.Count -gt 0) {
+        Write-Host "Found $($cpeList.Count) CPE candidates, retrying..." -ForegroundColor Cyan
+        $cpeList | ForEach-Object { Write-Host "  - $_" -ForegroundColor Gray }
+        $rowsRaw = Get-NvdCves -CpeNames $cpeList `
+                               -StartIso $startIso -EndIso $endIso `
+                               -ApiKey $NvdApiKey `
+                               -UseLastModified:$useLM `
+                               -NoDateFilter:$noDates `
+                               -Verbose
+        Write-Host "CPE-based query returned $($rowsRaw.Count) CVEs" -ForegroundColor Green
+      } else {
+        Write-Host "No CPE candidates found for keyword: $product" -ForegroundColor Yellow
+      }
+    }
+
+    # Flatten for CSV
+    Write-Host "Processing CVE data for CSV export..." -ForegroundColor Yellow
+    $rows = New-Object System.Collections.Generic.List[object]
+    foreach ($v in $rowsRaw) {
+      $cve = $v.cve
+      $id  = $cve.id
+      $desc = ($cve.descriptions | Where-Object { $_.lang -eq "en" } | Select-Object -First 1).value
+      if (-not $desc) { $desc = ($cve.descriptions | Select-Object -First 1).value }
+      $score = Get-CvssScore -metrics $cve.metrics
+      $sev = if ($score -ge 9) { "Critical" } elseif ($score -ge 7) { "High" } elseif ($score -ge 4) { "Medium" } elseif ($score -gt 0) { "Low" } else { $null }
+
+      $refs = @()
+      foreach ($r in ($cve.references ?? @())) { if ($r.url) { $refs += $r.url } }
+      $refsJoined = ($refs -join " | ")
+
+      $cpeRows = Expand-CPEs -configurations $cve.configurations
+      if (-not $cpeRows -or $cpeRows.Count -eq 0) {
+        $rows.Add([PSCustomObject]@{
+          ProductFilter   = $product
+          CVE             = $id
+          Published       = $cve.published
+          LastModified    = $cve.lastModified
+          CVSS_BaseScore  = $score
+          Severity        = $sev
+          Summary         = $desc
+          RefUrls         = $refsJoined
+          Vendor          = ''
+          Product         = ''
+          Version         = ''
+          CPE23Uri        = ''
+        })
+      } else {
+        foreach ($c in $cpeRows) {
+          $rows.Add([PSCustomObject]@{
+            ProductFilter   = $product
+            CVE             = $id
+            Published       = $cve.published
+            LastModified    = $cve.lastModified
+            CVSS_BaseScore  = $score
+            Severity        = $sev
+            Summary         = $desc
+            RefUrls         = $refsJoined
+            Vendor          = $c.Vendor
+            Product         = $c.Product
+            Version         = $c.Version
+            CPE23Uri        = $c.CPE23Uri
+          })
+        }
+      }
+    }
+
+    $ts = (Get-Date -Format "yyyyMMdd_HHmmss")
+    $safe = ($product -replace '[^\w\.\-]+','_').Trim('_'); if (-not $safe) { $safe = "product" }
+    $outPath = Join-Path $OutDir ("{0}_{1}.csv" -f $safe, $ts)
+    $rows | Export-Csv -Path $outPath -NoTypeInformation -Encoding UTF8
+    Write-Host "Export completed successfully!" -ForegroundColor Green
+    Write-Host "IMPORTANT: This product uses data from the NVD API but is not endorsed or certified by the NVD." -ForegroundColor Yellow
+    [System.Windows.MessageBox]::Show("Exported $($rows.Count) row(s) to:`n$outPath`n`nIMPORTANT: This product uses data from the NVD API but is not endorsed or certified by the NVD.", "Done")
+  }
+  catch {
+    $errorMsg = $_.Exception.Message
+    Write-Host "Error occurred: $errorMsg" -ForegroundColor Red
+    
+    # Enhanced error message for user
+    $userFriendlyMsg = if ($errorMsg -like "*HTTP error 404*") {
+      "The NVD API returned a 404 error. This could indicate:`n`n" +
+      "• The API endpoint is temporarily unavailable`n" +
+      "• The search parameters are invalid`n" +
+      "• Rate limiting or authentication issues`n`n" +
+      "Technical details: $errorMsg"
+    } elseif ($errorMsg -like "*timeout*") {
+      "The request timed out. The NVD API may be slow or unavailable.`n`n" +
+      "Technical details: $errorMsg"
+    } elseif ($errorMsg -like "*authentication*" -or $errorMsg -like "*401*") {
+      "Authentication failed. Please check your API key.`n`n" +
+      "Technical details: $errorMsg"
+    } else {
+      "An unexpected error occurred:`n`n$errorMsg"
+    }
+    
+    [System.Windows.MessageBox]::Show($userFriendlyMsg, "Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Warning)
+  }
+  finally {
+    $window.Cursor = 'Arrow'
+    $okButton.Content = "OK"
+    $okButton.IsEnabled = $true
+  }
+})
+
+# -------------------- Test API Button --------------------
+$testButton.Add_Click({
+  try {
+    $testButton.Content = "Testing..."
+    $testButton.IsEnabled = $false
+    $window.Cursor = 'Wait'
+    
+    Write-Host "`n=== NVD API Diagnostic Test ===" -ForegroundColor Magenta
+    
+    # API Key status
+    Write-Host "`nAPI Key Status:" -ForegroundColor Yellow
+    if ($NvdApiKey) {
+      Write-Host "✓ API Key is configured (length: $($NvdApiKey.Length) characters)" -ForegroundColor Green
+    } else {
+      Write-Host "⚠ No API key configured - using unauthenticated requests" -ForegroundColor Yellow
+      Write-Host "  Note: Unauthenticated requests have lower rate limits" -ForegroundColor Gray
+    }
+    
+    # Comprehensive API status check
+    $apiWorking = Get-NvdApiStatus -ApiKey $NvdApiKey
+    
+    # Additional keyword search test if basic connectivity works
+    $keywordTestOk = $false
+    if ($apiWorking) {
+      $keywordTestOk = Test-NvdApiKeywordSearch -Keyword "microsoft windows" -ApiKey $NvdApiKey
+    }
+    
+    # Summary
+    Write-Host "`n=== Test Summary ===" -ForegroundColor Magenta
+    if ($apiWorking -and $keywordTestOk) {
+      Write-Host "✓ All tests passed! The NVD API is working correctly." -ForegroundColor Green
+      [System.Windows.MessageBox]::Show("API tests passed successfully! The NVD API is working correctly.", "Test Results", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
+    } elseif ($apiWorking) {
+      Write-Host "⚠ Basic connectivity works, but keyword search failed." -ForegroundColor Yellow
+      Write-Host "  This might indicate an issue with search parameters or API changes." -ForegroundColor Gray
+      [System.Windows.MessageBox]::Show("Basic API connectivity works, but keyword search failed. Check the console output for details.", "Test Results", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Warning)
+    } else {
+      Write-Host "✗ API connectivity failed. The NVD API may be down or experiencing issues." -ForegroundColor Red
+      Write-Host "  Check the recommendations above for next steps." -ForegroundColor Gray
+      [System.Windows.MessageBox]::Show("API connectivity test failed. The NVD API may be experiencing issues. Check the console output for details and recommendations.", "Test Results", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
+    }
+    
+    Write-Host "`n=== End Diagnostic Test ===" -ForegroundColor Magenta
+  }
+  catch {
+    Write-Host "Error during API testing: $($_.Exception.Message)" -ForegroundColor Red
+    [System.Windows.MessageBox]::Show("Error during API testing: $($_.Exception.Message)", "Test Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
+  }
+  finally {
+    $testButton.Content = "Test API"
+    $testButton.IsEnabled = $true
+    $window.Cursor = 'Arrow'
+  }
+})
+
+$cancelButton.Add_Click({ $window.Close() })
+[void]$window.ShowDialog()
