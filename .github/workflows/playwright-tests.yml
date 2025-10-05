@@ -1,235 +1,235 @@
 name: Playwright Integration Tests
 
 on:
-  push:
-    branches: [ main, dev ]
-    paths:
-      - 'CVScrape.ps1'
-      - 'PlaywrightWrapper.ps1'
-      - 'Install-Playwright.ps1'
-      - 'Test-PlaywrightIntegration.ps1'
-      - 'vendors/**'
-      - '.github/workflows/playwright-tests.yml'
-  pull_request:
-    branches: [ main, dev ]
-  workflow_dispatch:  # Allow manual trigger
-  schedule:
-    - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
+    push:
+        branches: [main, dev]
+        paths:
+            - "CVScrape.ps1"
+            - "PlaywrightWrapper.ps1"
+            - "Install-Playwright.ps1"
+            - "Test-PlaywrightIntegration.ps1"
+            - "vendors/**"
+            - ".github/workflows/playwright-tests.yml"
+    pull_request:
+        branches: [main, dev]
+    workflow_dispatch: # Allow manual trigger
+    schedule:
+        - cron: "0 0 * * 0" # Weekly on Sunday at midnight UTC
 
 jobs:
-  test-playwright:
-    name: Test Playwright Integration
-    runs-on: windows-latest
+    test-playwright:
+        name: Test Playwright Integration
+        runs-on: windows-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-      - name: Setup .NET 6.0
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '6.0.x'
+            - name: Setup .NET 6.0
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: "6.0.x"
 
-      - name: Verify .NET installation
-        shell: pwsh
-        run: |
-          Write-Host "Checking .NET version..."
-          dotnet --version
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error ".NET installation failed"
-            exit 1
-          }
+            - name: Verify .NET installation
+              shell: pwsh
+              run: |
+                  Write-Host "Checking .NET version..."
+                  dotnet --version
+                  if ($LASTEXITCODE -ne 0) {
+                    Write-Error ".NET installation failed"
+                    exit 1
+                  }
 
-      - name: Install Playwright
-        shell: pwsh
-        run: |
-          Write-Host "Installing Playwright..."
-          .\Install-Playwright.ps1 -BrowserType chromium
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Playwright installation failed"
-            exit 1
-          }
+            - name: Install Playwright
+              shell: pwsh
+              run: |
+                  Write-Host "Installing Playwright..."
+                  .\Install-Playwright.ps1 -BrowserType chromium
+                  if ($LASTEXITCODE -ne 0) {
+                    Write-Error "Playwright installation failed"
+                    exit 1
+                  }
 
-      - name: Verify Playwright installation
-        shell: pwsh
-        run: |
-          Write-Host "Verifying Playwright installation..."
-          $packageDir = Join-Path $PWD "packages"
-          $dll = Get-ChildItem -Path $packageDir -Recurse -Filter "Microsoft.Playwright.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $dll) {
-            Write-Error "Playwright DLL not found after installation"
-            exit 1
-          }
-          Write-Host "✓ Playwright DLL found: $($dll.FullName)"
+            - name: Verify Playwright installation
+              shell: pwsh
+              run: |
+                  Write-Host "Verifying Playwright installation..."
+                  $packageDir = Join-Path $PWD "packages"
+                  $dll = Get-ChildItem -Path $packageDir -Recurse -Filter "Microsoft.Playwright.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
+                  if (-not $dll) {
+                    Write-Error "Playwright DLL not found after installation"
+                    exit 1
+                  }
+                  Write-Host "✓ Playwright DLL found: $($dll.FullName)"
 
-      - name: Run Playwright integration tests
-        shell: pwsh
-        run: |
-          Write-Host "Running Playwright integration tests..."
-          .\Test-PlaywrightIntegration.ps1
-        continue-on-error: false
+            - name: Run Playwright integration tests
+              shell: pwsh
+              run: |
+                  Write-Host "Running Playwright integration tests..."
+                  .\Test-PlaywrightIntegration.ps1
+              continue-on-error: false
 
-      - name: Upload test logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-test-logs
-          path: out/playwright_test_*.log
-          retention-days: 30
+            - name: Upload test logs
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: playwright-test-logs
+                  path: out/playwright_test_*.log
+                  retention-days: 30
 
-      - name: Upload screenshots (if any)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-screenshots
-          path: out/screenshot_*.png
-          retention-days: 7
-          if-no-files-found: ignore
+            - name: Upload screenshots (if any)
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: playwright-screenshots
+                  path: out/screenshot_*.png
+                  retention-days: 7
+                  if-no-files-found: ignore
 
-  test-scraper-basic:
-    name: Test Basic Scraper Functionality
-    runs-on: windows-latest
-    needs: test-playwright
+    test-scraper-basic:
+        name: Test Basic Scraper Functionality
+        runs-on: windows-latest
+        needs: test-playwright
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-      - name: Setup .NET 6.0
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '6.0.x'
+            - name: Setup .NET 6.0
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: "6.0.x"
 
-      - name: Install Playwright
-        shell: pwsh
-        run: |
-          .\Install-Playwright.ps1 -BrowserType chromium
+            - name: Install Playwright
+              shell: pwsh
+              run: |
+                  .\Install-Playwright.ps1 -BrowserType chromium
 
-      - name: Create test CSV file
-        shell: pwsh
-        run: |
-          $testData = @"
-"CVE","Description","Severity","RefUrls"
-"CVE-2024-21302","Test CVE 1","High","https://msrc.microsoft.com/update-guide/vulnerability/CVE-2024-21302"
-"CVE-2023-28290","Test CVE 2","Medium","https://msrc.microsoft.com/update-guide/vulnerability/CVE-2023-28290"
-"@
-          $outDir = "out"
-          if (-not (Test-Path $outDir)) {
-            New-Item -ItemType Directory -Path $outDir | Out-Null
-          }
-          $testData | Out-File -FilePath "out\test_cves.csv" -Encoding UTF8
-          Write-Host "✓ Test CSV created"
+            - name: Create test CSV file
+              shell: pwsh
+              run: |
+                  $testData = @"
+                  "CVE","Description","Severity","RefUrls"
+                  "CVE-2024-21302","Test CVE 1","High","https://msrc.microsoft.com/update-guide/vulnerability/CVE-2024-21302"
+                  "CVE-2023-28290","Test CVE 2","Medium","https://msrc.microsoft.com/update-guide/vulnerability/CVE-2023-28290"
+                  "@
+                  $outDir = "out"
+                  if (-not (Test-Path $outDir)) {
+                    New-Item -ItemType Directory -Path $outDir | Out-Null
+                  }
+                  $testData | Out-File -FilePath "out\test_cves.csv" -Encoding UTF8
+                  Write-Host "✓ Test CSV created"
 
-      - name: Run scraper with Playwright
-        shell: pwsh
-        timeout-minutes: 10
-        run: |
-          Write-Host "Running CVScraper with Playwright integration..."
-          # Note: This would need the full GUI to be disabled or mocked
-          # For now, we'll just verify the script loads without errors
-          $null = Get-Content .\CVScrape.ps1 -Raw
-          Write-Host "✓ CVScrape.ps1 loads successfully"
+            - name: Run scraper with Playwright
+              shell: pwsh
+              timeout-minutes: 10
+              run: |
+                  Write-Host "Running CVScraper with Playwright integration..."
+                  # Note: This would need the full GUI to be disabled or mocked
+                  # For now, we'll just verify the script loads without errors
+                  $null = Get-Content .\CVScrape.ps1 -Raw
+                  Write-Host "✓ CVScrape.ps1 loads successfully"
 
-      - name: Upload scraper logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: scraper-logs
-          path: out/scrape_log_*.log
-          retention-days: 30
-          if-no-files-found: ignore
+            - name: Upload scraper logs
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: scraper-logs
+                  path: out/scrape_log_*.log
+                  retention-days: 30
+                  if-no-files-found: ignore
 
-  test-vendor-modules:
-    name: Test Vendor Modules
-    runs-on: windows-latest
+    test-vendor-modules:
+        name: Test Vendor Modules
+        runs-on: windows-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-      - name: Test vendor module loading
-        shell: pwsh
-        run: |
-          Write-Host "Testing vendor module loading..."
+            - name: Test vendor module loading
+              shell: pwsh
+              run: |
+                  Write-Host "Testing vendor module loading..."
 
-          # Load vendor modules
-          . ".\vendors\BaseVendor.ps1"
-          . ".\vendors\GenericVendor.ps1"
-          . ".\vendors\GitHubVendor.ps1"
-          . ".\vendors\MicrosoftVendor.ps1"
-          . ".\vendors\IBMVendor.ps1"
-          . ".\vendors\ZDIVendor.ps1"
-          . ".\vendors\VendorManager.ps1"
+                  # Load vendor modules
+                  . ".\vendors\BaseVendor.ps1"
+                  . ".\vendors\GenericVendor.ps1"
+                  . ".\vendors\GitHubVendor.ps1"
+                  . ".\vendors\MicrosoftVendor.ps1"
+                  . ".\vendors\IBMVendor.ps1"
+                  . ".\vendors\ZDIVendor.ps1"
+                  . ".\vendors\VendorManager.ps1"
 
-          Write-Host "✓ All vendor modules loaded successfully"
+                  Write-Host "✓ All vendor modules loaded successfully"
 
-          # Test vendor instantiation
-          $msVendor = [MicrosoftVendor]::new()
-          Write-Host "✓ MicrosoftVendor instantiated"
+                  # Test vendor instantiation
+                  $msVendor = [MicrosoftVendor]::new()
+                  Write-Host "✓ MicrosoftVendor instantiated"
 
-          $ghVendor = [GitHubVendor]::new()
-          Write-Host "✓ GitHubVendor instantiated"
+                  $ghVendor = [GitHubVendor]::new()
+                  Write-Host "✓ GitHubVendor instantiated"
 
-          $vendorMgr = [VendorManager]::new()
-          Write-Host "✓ VendorManager instantiated"
+                  $vendorMgr = [VendorManager]::new()
+                  Write-Host "✓ VendorManager instantiated"
 
-          Write-Host "`n✅ All vendor module tests passed"
+                  Write-Host "`n✅ All vendor module tests passed"
 
-  code-quality:
-    name: Code Quality Checks
-    runs-on: windows-latest
+    code-quality:
+        name: Code Quality Checks
+        runs-on: windows-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-      - name: Run PSScriptAnalyzer
-        shell: pwsh
-        run: |
-          Write-Host "Installing PSScriptAnalyzer..."
-          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser -SkipPublisherCheck
+            - name: Run PSScriptAnalyzer
+              shell: pwsh
+              run: |
+                  Write-Host "Installing PSScriptAnalyzer..."
+                  Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser -SkipPublisherCheck
 
-          Write-Host "`nAnalyzing PowerShell scripts..."
-          $results = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Warning,Error
+                  Write-Host "`nAnalyzing PowerShell scripts..."
+                  $results = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Warning,Error
 
-          if ($results) {
-            Write-Host "`n⚠ PSScriptAnalyzer found issues:"
-            $results | Format-Table -AutoSize
+                  if ($results) {
+                    Write-Host "`n⚠ PSScriptAnalyzer found issues:"
+                    $results | Format-Table -AutoSize
 
-            $errorCount = ($results | Where-Object Severity -eq 'Error').Count
-            $warningCount = ($results | Where-Object Severity -eq 'Warning').Count
+                    $errorCount = ($results | Where-Object Severity -eq 'Error').Count
+                    $warningCount = ($results | Where-Object Severity -eq 'Warning').Count
 
-            Write-Host "`nErrors: $errorCount, Warnings: $warningCount"
+                    Write-Host "`nErrors: $errorCount, Warnings: $warningCount"
 
-            if ($errorCount -gt 0) {
-              Write-Error "PSScriptAnalyzer found $errorCount error(s)"
-              exit 1
-            }
-          } else {
-            Write-Host "✓ No issues found"
-          }
+                    if ($errorCount -gt 0) {
+                      Write-Error "PSScriptAnalyzer found $errorCount error(s)"
+                      exit 1
+                    }
+                  } else {
+                    Write-Host "✓ No issues found"
+                  }
 
-      - name: Check for syntax errors
-        shell: pwsh
-        run: |
-          Write-Host "Checking PowerShell syntax..."
-          $scripts = Get-ChildItem -Path . -Filter "*.ps1" -Recurse -Exclude "packages"
+            - name: Check for syntax errors
+              shell: pwsh
+              run: |
+                  Write-Host "Checking PowerShell syntax..."
+                  $scripts = Get-ChildItem -Path . -Filter "*.ps1" -Recurse -Exclude "packages"
 
-          $errorCount = 0
-          foreach ($script in $scripts) {
-            $errors = $null
-            $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $script.FullName -Raw), [ref]$errors)
+                  $errorCount = 0
+                  foreach ($script in $scripts) {
+                    $errors = $null
+                    $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $script.FullName -Raw), [ref]$errors)
 
-            if ($errors) {
-              Write-Host "❌ Syntax errors in $($script.Name):"
-              $errors | Format-Table -AutoSize
-              $errorCount += $errors.Count
-            }
-          }
+                    if ($errors) {
+                      Write-Host "❌ Syntax errors in $($script.Name):"
+                      $errors | Format-Table -AutoSize
+                      $errorCount += $errors.Count
+                    }
+                  }
 
-          if ($errorCount -gt 0) {
-            Write-Error "Found $errorCount syntax error(s)"
-            exit 1
-          }
+                  if ($errorCount -gt 0) {
+                    Write-Error "Found $errorCount syntax error(s)"
+                    exit 1
+                  }
 
-          Write-Host "✓ No syntax errors found"
+                  Write-Host "✓ No syntax errors found"
