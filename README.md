@@ -4,7 +4,7 @@
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-7.x-blue.svg)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-production-brightgreen.svg)](https://github.com/your-username/CVExcel)
+[![Status](https://img.shields.io/badge/status-production-brightgreen.svg)](https://github.com/Columbia-Cloudworks-LLC/CVExcel)
 
 ---
 
@@ -354,6 +354,16 @@ This project follows NIST security guidelines. See the [Security Policy](SECURIT
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 👥 Author & Maintainer
+
+**Maintained by [Columbia Cloudworks LLC](https://columbia-cloudworks.com)**
+
+- **Project Repository:** [https://github.com/Columbia-Cloudworks-LLC/CVExcel](https://github.com/Columbia-Cloudworks-LLC/CVExcel)
+- **License:** MIT License
+- **Contact:** Create an issue on GitHub for support
 
 ---
 

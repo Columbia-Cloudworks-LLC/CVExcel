@@ -7,6 +7,13 @@ A comprehensive CVE advisory scraper that can run in two modes:
 1. GUI Mode: When run without parameters, launches the CVExpand-GUI interface
 2. Command Line Mode: When provided with a URL parameter, scrapes the specified URL
 
+.AUTHOR
+    Columbia Cloudworks LLC
+    https://github.com/Columbia-Cloudworks-LLC/CVExcel
+
+.LICENSE
+    MIT License
+
 .PARAMETER Url
 The URL to scrape. If not provided, launches the GUI interface.
 
@@ -26,15 +33,16 @@ param(
 
 # Check if URL parameter was provided
 if (-not $Url) {
-    Write-Host "No URL provided. Launching CVExpand GUI..." -ForegroundColor Cyan
+    Write-Host "No URL provided. Launching CVExcel unified GUI..." -ForegroundColor Cyan
+    Write-Host "Note: CVExpand is now integrated into the unified CVExcel GUI" -ForegroundColor Yellow
     Write-Host "For command line usage: .\CVExpand.ps1 -Url 'https://example.com/cve-url'" -ForegroundColor Gray
 
-    # Launch the GUI
-    $guiPath = Join-Path $PSScriptRoot "ui\CVExpand-GUI.ps1"
+    # Launch the unified GUI (now integrated with CVExcel)
+    $guiPath = Join-Path $PSScriptRoot "ui\CVExcel-GUI.ps1"
 
     if (Test-Path $guiPath) {
         try {
-            Write-Host "Starting CVExpand-GUI..." -ForegroundColor Green
+            Write-Host "Starting CVExcel unified GUI (Advisory Scraper tab)..." -ForegroundColor Green
             & $guiPath
         } catch {
             Write-Host "Failed to launch GUI: $($_.Exception.Message)" -ForegroundColor Red

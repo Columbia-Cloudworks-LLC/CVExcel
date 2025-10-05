@@ -3,31 +3,31 @@
 
 @{
     # Module metadata
-    ModuleVersion = '1.0.0'
-    GUID = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
-    Author = 'CVE Advisory Scraper'
-    CompanyName = 'CVE Advisory Scraper'
-    Copyright = '(c) CVE Advisory Scraper. All rights reserved.'
-    Description = 'Vendor-specific scraping modules for CVE advisory data extraction'
-    PowerShellVersion = '5.1'
-    
+    ModuleVersion      = '1.0.0'
+    GUID               = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+    Author             = 'Columbia Cloudworks LLC'
+    CompanyName        = 'Columbia Cloudworks LLC'
+    Copyright          = '(c) Columbia Cloudworks LLC. All rights reserved. Licensed under MIT License.'
+    Description        = 'Vendor-specific scraping modules for CVE advisory data extraction'
+    PowerShellVersion  = '5.1'
+
     # Required modules
-    RequiredModules = @()
-    
+    RequiredModules    = @()
+
     # Required assemblies
     RequiredAssemblies = @()
-    
+
     # Script files to process
-    ScriptsToProcess = @()
-    
+    ScriptsToProcess   = @()
+
     # Types to process
-    TypesToProcess = @()
-    
+    TypesToProcess     = @()
+
     # Formats to process
-    FormatsToProcess = @()
-    
+    FormatsToProcess   = @()
+
     # Nested modules
-    NestedModules = @(
+    NestedModules      = @(
         'BaseVendor.ps1',
         'GitHubVendor.ps1',
         'MicrosoftVendor.ps1',
@@ -36,21 +36,21 @@
         'GenericVendor.ps1',
         'VendorManager.ps1'
     )
-    
+
     # Functions to export
-    FunctionsToExport = @()
-    
+    FunctionsToExport  = @()
+
     # Cmdlets to export
-    CmdletsToExport = @()
-    
+    CmdletsToExport    = @()
+
     # Variables to export
-    VariablesToExport = @()
-    
+    VariablesToExport  = @()
+
     # Aliases to export
-    AliasesToExport = @()
-    
+    AliasesToExport    = @()
+
     # Module list
-    ModuleList = @(
+    ModuleList         = @(
         'BaseVendor',
         'GitHubVendor',
         'MicrosoftVendor',
@@ -59,9 +59,9 @@
         'GenericVendor',
         'VendorManager'
     )
-    
+
     # File list
-    FileList = @(
+    FileList           = @(
         'BaseVendor.ps1',
         'GitHubVendor.ps1',
         'MicrosoftVendor.ps1',
@@ -71,13 +71,13 @@
         'VendorManager.ps1',
         'vendors.psd1'
     )
-    
+
     # Private data
-    PrivateData = @{
+    PrivateData        = @{
         PSData = @{
-            Tags = @('CVE', 'Security', 'Scraping', 'Advisory', 'Vendor')
-            ProjectUri = ''
-            LicenseUri = ''
+            Tags         = @('CVE', 'Security', 'Scraping', 'Advisory', 'Vendor')
+            ProjectUri   = 'https://github.com/Columbia-Cloudworks-LLC/CVExcel'
+            LicenseUri   = 'https://github.com/Columbia-Cloudworks-LLC/CVExcel/blob/main/LICENSE'
             ReleaseNotes = 'Initial release of vendor-specific scraping modules'
         }
     }

@@ -7,6 +7,13 @@
     with CVScrape's user-friendly GUI interface. Uses Playwright for JavaScript rendering
     with HTTP fallback for maximum reliability.
 
+.AUTHOR
+    Columbia Cloudworks LLC
+    https://github.com/Columbia-Cloudworks-LLC/CVExcel
+
+.LICENSE
+    MIT License
+
 .FEATURES
     - Proven Playwright integration for JavaScript-heavy pages (MSRC, etc.)
     - HTTP fallback when Playwright unavailable
