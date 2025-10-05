@@ -1,7 +1,7 @@
 ---
 description: PowerShell coding standards and best practices
 globs: ["**/*.ps1"]
-alwaysApply: false
+alwaysApply: true
 ---
 
 # PowerShell Best Practices
