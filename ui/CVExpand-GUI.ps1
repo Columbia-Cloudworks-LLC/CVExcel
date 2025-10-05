@@ -34,10 +34,15 @@
 # Import required assemblies for GUI
 Add-Type -AssemblyName PresentationFramework, PresentationCore, System.Web
 
-# -------------------- Import Vendor Modules --------------------
-# Load vendor-specific scraping modules for enhanced extraction
+# -------------------- Import Modules --------------------
+# Load common and vendor-specific modules
 # Vendors folder is in root directory (one level up from ui/)
 $rootDir = Split-Path $PSScriptRoot -Parent
+
+# Import common modules first
+. "$rootDir\common\Logging.ps1"
+
+# Import vendor modules
 . "$rootDir\vendors\BaseVendor.ps1"
 . "$rootDir\vendors\GenericVendor.ps1"
 . "$rootDir\vendors\GitHubVendor.ps1"
@@ -54,69 +59,9 @@ if (-not (Test-Path $OutDir)) {
     return
 }
 
-# -------------------- Logging Infrastructure --------------------
+# -------------------- Global State --------------------
 $Global:LogFile = $null
 $Global:VendorManager = $null
-
-function Initialize-LogFile {
-    [CmdletBinding()]
-    param(
-        [string]$LogDir = $OutDir
-    )
-
-    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-    $logFileName = "scrape_log_$timestamp.log"
-    $logFilePath = Join-Path $LogDir $logFileName
-
-    # Create log file with header
-    $header = @"
-================================================================================
-CVE Advisory Scraper Log (CVExpand-GUI Version)
-Started: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
-Log File: $logFileName
-================================================================================
-
-"@
-
-    Add-Content -Path $logFilePath -Value $header -Encoding UTF8
-    Write-Host "Log file created: $logFilePath" -ForegroundColor Cyan
-
-    return $logFilePath
-}
-
-function Write-Log {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)]
-        [string]$Message,
-        [ValidateSet("INFO", "WARNING", "ERROR", "DEBUG", "SUCCESS")]
-        [string]$Level = "INFO",
-        [string]$LogFile = $Global:LogFile
-    )
-
-    if (-not $LogFile -or -not (Test-Path $LogFile)) {
-        Write-Host "Warning: Log file not initialized. Message: $Message" -ForegroundColor Yellow
-        return
-    }
-
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $logEntry = "[$timestamp] [$Level] $Message"
-
-    # Write to log file
-    Add-Content -Path $LogFile -Value $logEntry -Encoding UTF8
-
-    # Write to console with appropriate color
-    $color = switch ($Level) {
-        "INFO" { "White" }
-        "WARNING" { "Yellow" }
-        "ERROR" { "Red" }
-        "DEBUG" { "Gray" }
-        "SUCCESS" { "Green" }
-        default { "White" }
-    }
-
-    Write-Host $logEntry -ForegroundColor $color
-}
 
 # -------------------- Import Playwright Wrapper --------------------
 # PlaywrightWrapper.ps1 is in the same directory (ui/)
@@ -127,23 +72,7 @@ function Write-Log {
 . "$PSScriptRoot\DependencyManager.ps1"
 
 # -------------------- Core Scraping Functions (from CVExpand) --------------------
-
-function Test-PlaywrightAvailability {
-    <#
-    .SYNOPSIS
-        Checks if Playwright is installed and available.
-    #>
-    try {
-        $packageDir = Join-Path $PSScriptRoot "packages"
-        if (-not (Test-Path $packageDir)) {
-            return $false
-        }
-        $playwrightDll = Get-ChildItem -Path $packageDir -Recurse -Filter "Microsoft.Playwright.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
-        return $null -ne $playwrightDll
-    } catch {
-        return $false
-    }
-}
+# Note: Test-PlaywrightAvailability is now in ui/PlaywrightWrapper.ps1
 
 function Get-WebPage {
     <#
@@ -985,23 +914,9 @@ function Invoke-BackgroundScraping {
             $Global:VendorManager = $null
 
             try {
-                # Define helper functions in runspace context
-                function Write-Log {
-                    param([string]$Message, [string]$Level = "INFO", [string]$LogFile = $Global:LogFile)
-                    if (-not $LogFile -or -not (Test-Path $LogFile)) { return }
-                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logEntry = "[$timestamp] [$Level] $Message"
-                    Add-Content -Path $LogFile -Value $logEntry -Encoding UTF8
-                }
-
-                function Test-PlaywrightAvailability {
-                    try {
-                        $packageDir = Join-Path $RootDir "packages"
-                        if (-not (Test-Path $packageDir)) { return $false }
-                        $playwrightDll = Get-ChildItem -Path $packageDir -Recurse -Filter "Microsoft.Playwright.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
-                        return $null -ne $playwrightDll
-                    } catch { return $false }
-                }
+                # Import common modules in runspace context
+                . "$rootDir\common\Logging.ps1"
+                . "$rootDir\ui\PlaywrightWrapper.ps1"
 
                 function Get-WebPage {
                     param([string]$Url)

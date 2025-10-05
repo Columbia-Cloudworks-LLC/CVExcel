@@ -1,0 +1,249 @@
+{
+  "timestamp": "2025-10-05T00:00:00Z",
+  "project": "CVExcel",
+  "version": "2.0",
+  "analyzer": "Tech-Debt Reducer Agent",
+
+  "size_metrics": {
+    "total_files": 53,
+    "total_size_kb": 548.23,
+    "total_loc": 12000,
+    "loc_per_file_avg": 226,
+    "files_over_500_loc": 5,
+    "largest_files": [
+      { "file": "ui/CVExcel-GUI.ps1", "lines": 1475 },
+      { "file": "ui/CVExpand-GUI.ps1", "lines": 1254 },
+      { "file": "tests/legacy/CVScrape-legacy.ps1", "lines": 1110 },
+      { "file": "tests/legacy/CVScrape.ps1", "lines": 837 },
+      { "file": "CVExcel.ps1", "lines": 769 },
+      { "file": "tests/legacy/CVScrape-Refactored.ps1", "lines": 600 },
+      { "file": "ui/NVDEngine.ps1", "lines": 559 },
+      { "file": "ui/ScrapingEngine.ps1", "lines": 427 }
+    ]
+  },
+
+  "complexity_metrics": {
+    "function_count": 120,
+    "avg_cyclomatic": "unknown",
+    "max_cyclomatic": "unknown",
+    "duplication_ratio": 0.25,
+    "duplicated_loc_estimate": 750,
+    "dead_code_loc": 811
+  },
+
+  "duplication_hotspots": [
+    { "function": "Write-Log", "occurrences": 4, "loc_duplicated": 100, "severity": "HIGH" },
+    { "function": "Get-WebPage", "occurrences": 5, "loc_duplicated": 200, "severity": "HIGH" },
+    { "function": "Test-PlaywrightAvailability", "occurrences": 5, "loc_duplicated": 50, "severity": "MEDIUM" },
+    { "function": "Get-WebPageHTTP", "occurrences": 4, "loc_duplicated": 120, "severity": "MEDIUM" },
+    { "function": "Extract-MSRCData", "occurrences": 3, "loc_duplicated": 180, "severity": "MEDIUM" },
+    { "function": "Scrape-AdvisoryUrl", "occurrences": 2, "loc_duplicated": 100, "severity": "MEDIUM" }
+  ],
+
+  "code_quality": {
+    "powershell_best_practices": "moderate",
+    "nist_security_compliance": "good",
+    "module_organization": "needs_improvement",
+    "test_coverage_percent": null,
+    "lint_errors": 0,
+    "lint_warnings": "unknown"
+  },
+
+  "debt_score": {
+    "overall": 68,
+    "size": 70,
+    "duplication": 75,
+    "complexity": 60,
+    "test_coverage": 0,
+    "documentation": 80
+  },
+
+  "technical_debt_items": [
+    {
+      "id": 1,
+      "title": "Remove Dead Code in CVExcel.ps1",
+      "severity": "CRITICAL",
+      "effort_hours": 0.5,
+      "impact": "HIGH",
+      "risk": "VERY_LOW",
+      "roi": 5,
+      "loc_affected": 811,
+      "files": ["CVExcel.ps1"]
+    },
+    {
+      "id": 2,
+      "title": "Consolidate Write-Log Function",
+      "severity": "HIGH",
+      "effort_hours": 2,
+      "impact": "HIGH",
+      "risk": "LOW",
+      "roi": 5,
+      "loc_affected": 100,
+      "files": [
+        "CVExcel.ps1",
+        "CVExpand.ps1",
+        "vendors/BaseVendor.ps1",
+        "ui/CVExcel-GUI.ps1",
+        "ui/CVExpand-GUI.ps1"
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Consolidate Get-WebPage Function",
+      "severity": "HIGH",
+      "effort_hours": 3,
+      "impact": "HIGH",
+      "risk": "MEDIUM",
+      "roi": 4,
+      "loc_affected": 200,
+      "files": [
+        "CVExpand.ps1",
+        "ui/CVExcel-GUI.ps1",
+        "ui/CVExpand-GUI.ps1",
+        "tests/legacy/CVScrape.ps1",
+        "tests/legacy/CVScrape-legacy.ps1"
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Consolidate Test-PlaywrightAvailability Function",
+      "severity": "HIGH",
+      "effort_hours": 1,
+      "impact": "MEDIUM",
+      "risk": "LOW",
+      "roi": 4,
+      "loc_affected": 50,
+      "files": [
+        "CVExpand.ps1",
+        "ui/CVExcel-GUI.ps1",
+        "ui/CVExpand-GUI.ps1",
+        "tests/legacy/CVScrape.ps1",
+        "tests/legacy/CVScrape-legacy.ps1"
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Merge or Delete Redundant Launcher Scripts",
+      "severity": "MEDIUM",
+      "effort_hours": 2,
+      "impact": "MEDIUM",
+      "risk": "LOW",
+      "roi": 3,
+      "loc_affected": 200,
+      "files": ["CVExcel.ps1", "CVExpand.ps1"]
+    },
+    {
+      "id": 6,
+      "title": "Split CVExcel-GUI.ps1",
+      "severity": "MEDIUM",
+      "effort_hours": 8,
+      "impact": "HIGH",
+      "risk": "MEDIUM",
+      "roi": 3,
+      "loc_affected": 1475,
+      "files": ["ui/CVExcel-GUI.ps1"]
+    },
+    {
+      "id": 7,
+      "title": "Split CVExpand-GUI.ps1",
+      "severity": "MEDIUM",
+      "effort_hours": 6,
+      "impact": "MEDIUM",
+      "risk": "MEDIUM",
+      "roi": 3,
+      "loc_affected": 1254,
+      "files": ["ui/CVExpand-GUI.ps1"]
+    },
+    {
+      "id": 8,
+      "title": "Archive or Delete Legacy Test Files",
+      "severity": "LOW",
+      "effort_hours": 0.5,
+      "impact": "LOW",
+      "risk": "VERY_LOW",
+      "roi": 2,
+      "loc_affected": 2547,
+      "files": [
+        "tests/legacy/CVScrape-legacy.ps1",
+        "tests/legacy/CVScrape.ps1",
+        "tests/legacy/CVScrape-Refactored.ps1"
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Fix Module Import Paths in ScrapingEngine.ps1",
+      "severity": "LOW",
+      "effort_hours": 0.5,
+      "impact": "LOW",
+      "risk": "LOW",
+      "roi": 2,
+      "loc_affected": 7,
+      "files": ["ui/ScrapingEngine.ps1"]
+    },
+    {
+      "id": 10,
+      "title": "Create Common Utilities Module",
+      "severity": "LOW",
+      "effort_hours": 4,
+      "impact": "MEDIUM",
+      "risk": "LOW",
+      "roi": 2,
+      "loc_affected": 0,
+      "files": []
+    }
+  ],
+
+  "refactoring_phases": {
+    "phase_1": {
+      "name": "Quick Wins",
+      "authorization_level": 1,
+      "effort_hours": 4,
+      "items": [1, 2, 3, 4, 8],
+      "expected_loc_reduction": 1400,
+      "expected_duplication_reduction": 0.15
+    },
+    "phase_2": {
+      "name": "Medium Refactors",
+      "authorization_level": 2,
+      "effort_hours": 15,
+      "items": [5, 6, 9, 10],
+      "expected_loc_reduction": 800,
+      "expected_duplication_reduction": 0.25
+    },
+    "phase_3": {
+      "name": "Strategic Refactors",
+      "authorization_level": 2,
+      "effort_hours": 10,
+      "items": [7],
+      "expected_loc_reduction": 500,
+      "expected_duplication_reduction": 0.05
+    }
+  },
+
+  "target_metrics_post_phase_1": {
+    "total_loc": 10600,
+    "loc_reduction": -1400,
+    "loc_reduction_percent": 0.12,
+    "duplication_ratio": 0.10,
+    "files_over_500_loc": 2,
+    "dead_code_loc": 0
+  },
+
+  "target_metrics_post_phase_2": {
+    "total_loc": 9800,
+    "loc_reduction": -2200,
+    "loc_reduction_percent": 0.18,
+    "duplication_ratio": 0.05,
+    "files_over_500_loc": 0,
+    "dead_code_loc": 0
+  },
+
+  "target_metrics_post_phase_3": {
+    "total_loc": 9500,
+    "loc_reduction": -2500,
+    "loc_reduction_percent": 0.21,
+    "duplication_ratio": 0.03,
+    "files_over_500_loc": 0,
+    "test_coverage_percent": 60
+  }
+}

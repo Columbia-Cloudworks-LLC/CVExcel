@@ -62,30 +62,8 @@ if ($Url) {
     Write-Host "Target URL: $Url" -ForegroundColor White
 }
 
-# Simple logging function
-function Write-Log {
-    param(
-        [string]$Message,
-        [string]$Level = "INFO"
-    )
-
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $logEntry = "[$timestamp] [$Level] $Message"
-
-    # Write to console with color
-    $color = switch ($Level) {
-        "INFO" { "White" }
-        "SUCCESS" { "Green" }
-        "WARNING" { "Yellow" }
-        "ERROR" { "Red" }
-        "DEBUG" { "Gray" }
-        default { "White" }
-    }
-
-    Write-Host $logEntry -ForegroundColor $color
-}
-
-# Import Playwright wrapper
+# Import common modules
+. "$PSScriptRoot\common\Logging.ps1"
 . "$PSScriptRoot\ui\PlaywrightWrapper.ps1"
 
 # Function to get web page with Playwright for JavaScript rendering
@@ -173,20 +151,6 @@ function Get-WebPageHTTP {
             Error   = $_.Exception.Message
             Method  = "HTTP"
         }
-    }
-}
-
-# Function to test Playwright availability
-function Test-PlaywrightAvailability {
-    try {
-        $packageDir = Join-Path $PSScriptRoot "packages"
-        if (-not (Test-Path $packageDir)) {
-            return $false
-        }
-        $playwrightDll = Get-ChildItem -Path $packageDir -Recurse -Filter "Microsoft.Playwright.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
-        return $null -ne $playwrightDll
-    } catch {
-        return $false
     }
 }
 

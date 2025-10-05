@@ -67,6 +67,49 @@ function Test-PlaywrightDll {
 
 #endregion
 
+#region Availability Check
+
+function Test-PlaywrightAvailability {
+    <#
+    .SYNOPSIS
+        Checks if Playwright is available and properly installed.
+
+    .DESCRIPTION
+        Tests for the presence of Playwright DLL in the packages directory.
+        Used by other modules to determine if Playwright features are available.
+
+    .EXAMPLE
+        if (Test-PlaywrightAvailability) {
+            # Use Playwright
+        } else {
+            # Fallback to HTTP
+        }
+
+    .OUTPUTS
+        [bool] True if Playwright is available, false otherwise
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param()
+
+    try {
+        # packages folder is in root directory (one level up from ui/)
+        $rootDir = Split-Path $PSScriptRoot -Parent
+        $packageDir = Join-Path $rootDir "packages"
+
+        if (-not (Test-Path $packageDir)) {
+            return $false
+        }
+
+        $playwrightDll = Get-ChildItem -Path $packageDir -Recurse -Filter "Microsoft.Playwright.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
+        return $null -ne $playwrightDll
+    } catch {
+        return $false
+    }
+}
+
+#endregion
+
 #region Core Functions
 
 function New-PlaywrightBrowser {

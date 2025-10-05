@@ -30,6 +30,9 @@ if (-not (Test-Path $script:OutDir)) {
 # -------------------- Import Modules --------------------
 Write-Host "Loading CVExcel modules..." -ForegroundColor Cyan
 
+# Import common modules
+. "$script:RootDir\common\Logging.ps1"
+
 # Import NVD Engine
 . "$PSScriptRoot\NVDEngine.ps1"
 
@@ -53,75 +56,8 @@ $Global:LogFile = $null
 $Global:VendorManager = $null
 $Global:DependencyManager = $null
 
-# -------------------- Logging Infrastructure --------------------
-function Initialize-LogFile {
-    [CmdletBinding()]
-    param([string]$LogDir = $script:OutDir)
-
-    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-    $logFileName = "cvexcel_log_$timestamp.log"
-    $logFilePath = Join-Path $LogDir $logFileName
-
-    $header = @"
-================================================================================
-CVExcel Unified GUI Log
-Started: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
-Log File: $logFileName
-================================================================================
-
-"@
-
-    Add-Content -Path $logFilePath -Value $header -Encoding UTF8
-    Write-Host "Log file created: $logFilePath" -ForegroundColor Cyan
-    return $logFilePath
-}
-
-function Write-Log {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)]
-        [string]$Message,
-        [ValidateSet("INFO", "WARNING", "ERROR", "DEBUG", "SUCCESS")]
-        [string]$Level = "INFO",
-        [string]$LogFile = $Global:LogFile
-    )
-
-    if (-not $LogFile -or -not (Test-Path $LogFile)) {
-        Write-Host "[$Level] $Message"
-        return
-    }
-
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $logEntry = "[$timestamp] [$Level] $Message"
-
-    Add-Content -Path $LogFile -Value $logEntry -Encoding UTF8
-
-    $color = switch ($Level) {
-        "INFO" { "White" }
-        "WARNING" { "Yellow" }
-        "ERROR" { "Red" }
-        "DEBUG" { "Gray" }
-        "SUCCESS" { "Green" }
-        default { "White" }
-    }
-
-    Write-Host $logEntry -ForegroundColor $color
-}
-
 # -------------------- CVExpand Helper Functions --------------------
-
-function Test-PlaywrightAvailability {
-    try {
-        $packageDir = Join-Path $script:RootDir "packages"
-        if (-not (Test-Path $packageDir)) {
-            return $false
-        }
-        $playwrightDll = Get-ChildItem -Path $packageDir -Recurse -Filter "Microsoft.Playwright.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
-        return $null -ne $playwrightDll
-    } catch {
-        return $false
-    }
-}
+# Note: Test-PlaywrightAvailability is now in ui/PlaywrightWrapper.ps1
 
 function Get-WebPage {
     param(
@@ -1232,23 +1168,9 @@ function Invoke-BackgroundScraping {
             $Global:VendorManager = $null
 
             try {
-                # Define helper functions in runspace context
-                function Write-Log {
-                    param([string]$Message, [string]$Level = "INFO", [string]$LogFile = $Global:LogFile)
-                    if (-not $LogFile -or -not (Test-Path $LogFile)) { return }
-                    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                    $logEntry = "[$timestamp] [$Level] $Message"
-                    Add-Content -Path $LogFile -Value $logEntry -Encoding UTF8
-                }
-
-                function Test-PlaywrightAvailability {
-                    try {
-                        $packageDir = Join-Path $RootDir "packages"
-                        if (-not (Test-Path $packageDir)) { return $false }
-                        $playwrightDll = Get-ChildItem -Path $packageDir -Recurse -Filter "Microsoft.Playwright.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
-                        return $null -ne $playwrightDll
-                    } catch { return $false }
-                }
+                # Import common modules in runspace context
+                . "$RootDir\common\Logging.ps1"
+                . "$RootDir\ui\PlaywrightWrapper.ps1"
 
                 function Get-WebPage {
                     param([string]$Url)
