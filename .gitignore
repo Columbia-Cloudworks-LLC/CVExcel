@@ -422,6 +422,8 @@ FodyWeavers.xsd
 
 # Output Files
 ./out/*
+*test*.txt
+*.html
 
 # Playwright Files
 ./packages/*

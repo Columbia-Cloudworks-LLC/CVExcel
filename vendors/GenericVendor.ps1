@@ -1,7 +1,6 @@
 # GenericVendor.ps1 - Generic vendor scraping module
 # Handles vendors that don't have specific modules
-
-. "$PSScriptRoot\BaseVendor.ps1"
+# Note: BaseVendor.ps1 must be loaded before this module
 
 class GenericVendor : BaseVendor {
     GenericVendor() : base("Generic", @("*")) {}

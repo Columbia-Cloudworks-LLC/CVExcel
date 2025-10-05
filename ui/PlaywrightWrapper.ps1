@@ -35,7 +35,9 @@ function Test-PlaywrightDll {
         return $true
     }
 
-    $packageDir = Join-Path $PSScriptRoot "packages"
+    # packages folder is in root directory (one level up from ui/)
+    $rootDir = Split-Path $PSScriptRoot -Parent
+    $packageDir = Join-Path $rootDir "packages"
     $libDir = Join-Path $packageDir "lib"
     $playwrightDll = Join-Path $libDir "Microsoft.Playwright.dll"
 

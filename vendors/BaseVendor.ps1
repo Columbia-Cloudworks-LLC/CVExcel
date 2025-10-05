@@ -1,6 +1,25 @@
 # BaseVendor.ps1 - Base class for vendor-specific scraping modules
 # This module defines the common interface and shared functionality for all vendor scrapers
 
+# Common logging function for all vendor modules
+function Write-Log {
+    param(
+        [string]$Message,
+        [string]$Level = "INFO"
+    )
+
+    $color = switch ($Level) {
+        "SUCCESS" { "Green" }
+        "WARNING" { "Yellow" }
+        "ERROR" { "Red" }
+        "INFO" { "Cyan" }
+        "DEBUG" { "Gray" }
+        default { "White" }
+    }
+
+    Write-Host "[$Level] $Message" -ForegroundColor $color
+}
+
 class BaseVendor {
     [string]$VendorName
     [string[]]$SupportedDomains

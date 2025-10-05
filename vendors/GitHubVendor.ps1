@@ -1,7 +1,6 @@
 # GitHubVendor.ps1 - GitHub-specific scraping module
 # Handles GitHub repository URLs using the GitHub API
-
-. "$PSScriptRoot\BaseVendor.ps1"
+# Note: BaseVendor.ps1 must be loaded before this module
 
 class GitHubVendor : BaseVendor {
     GitHubVendor() : base("GitHub", @("github.com")) {}
@@ -17,7 +16,7 @@ class GitHubVendor : BaseVendor {
 
             $headers = @{
                 'User-Agent' = 'CVE-Advisory-Scraper/1.0'
-                'Accept' = 'application/vnd.github.v3+json'
+                'Accept'     = 'application/vnd.github.v3+json'
             }
 
             try {
@@ -30,7 +29,7 @@ class GitHubVendor : BaseVendor {
                 # Get README content
                 $readmeHeaders = @{
                     'User-Agent' = 'CVE-Advisory-Scraper/1.0'
-                    'Accept' = 'application/vnd.github.v3.raw'
+                    'Accept'     = 'application/vnd.github.v3.raw'
                 }
                 $readme = $null
                 try {
@@ -38,8 +37,7 @@ class GitHubVendor : BaseVendor {
                     if ($readme) {
                         Write-Log -Message "Successfully retrieved README ($($readme.Length) chars)" -Level "SUCCESS"
                     }
-                }
-                catch {
+                } catch {
                     Write-Log -Message "No README found for repository" -Level "DEBUG"
                 }
 
@@ -51,8 +49,7 @@ class GitHubVendor : BaseVendor {
                         $releases = $releasesData
                         Write-Log -Message "Found $($releases.Count) releases" -Level "INFO"
                     }
-                }
-                catch {
+                } catch {
                     Write-Log -Message "No releases found for repository" -Level "DEBUG"
                 }
 
@@ -99,43 +96,41 @@ class GitHubVendor : BaseVendor {
                 $extractedParts += "Stars: $($repoData.stargazers_count)"
 
                 return @{
-                    Success = $true
-                    Method = 'GitHub API'
+                    Success       = $true
+                    Method        = 'GitHub API'
                     DownloadLinks = $downloadLinks
                     ExtractedData = $extractedParts -join ' | '
-                    RawData = @{
+                    RawData       = @{
                         Description = $repoData.description
-                        README = $readme
-                        Releases = $releases
+                        README      = $readme
+                        Releases    = $releases
                     }
                 }
-            }
-            catch {
+            } catch {
                 Write-Log -Message "GitHub API error: $_" -Level "ERROR"
                 return @{
                     Success = $false
-                    Method = 'GitHub API'
-                    Error = $_.Exception.Message
+                    Method  = 'GitHub API'
+                    Error   = $_.Exception.Message
                 }
             }
-        }
-        else {
+        } else {
             Write-Log -Message "Not a valid GitHub repository URL" -Level "WARNING"
             return @{
                 Success = $false
-                Method = 'GitHub API'
-                Error = 'Invalid GitHub URL format'
+                Method  = 'GitHub API'
+                Error   = 'Invalid GitHub URL format'
             }
         }
     }
 
     [hashtable] ExtractData([string]$htmlContent, [string]$url) {
         $info = @{
-            PatchID = $null
-            FixVersion = $null
+            PatchID          = $null
+            FixVersion       = $null
             AffectedVersions = $null
-            Remediation = $null
-            DownloadLinks = @()
+            Remediation      = $null
+            DownloadLinks    = @()
         }
 
         # Extract version from releases

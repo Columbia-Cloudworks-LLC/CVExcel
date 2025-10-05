@@ -1,7 +1,7 @@
 # IBMVendor.ps1 - IBM-specific scraping module
 # Handles IBM security advisory URLs
 
-. "$PSScriptRoot\BaseVendor.ps1"
+# Note: BaseVendor.ps1 must be loaded before this module
 
 class IBMVendor : BaseVendor {
     IBMVendor() : base("IBM", @("ibm.com")) {}

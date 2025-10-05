@@ -1,7 +1,7 @@
 # ZDIVendor.ps1 - Zero Day Initiative specific scraping module
 # Handles ZDI security advisory URLs
 
-. "$PSScriptRoot\BaseVendor.ps1"
+# Note: BaseVendor.ps1 must be loaded before this module
 
 class ZDIVendor : BaseVendor {
     ZDIVendor() : base("Zero Day Initiative", @("zerodayinitiative.com")) {}

@@ -2,12 +2,17 @@
 # This module coordinates between different vendor scrapers
 
 # Import all vendor modules in correct order
-. "$PSScriptRoot\BaseVendor.ps1"
-. "$PSScriptRoot\GenericVendor.ps1"
+# Only load BaseVendor once to avoid conflicts
+if (-not (Get-Variable -Name "BaseVendorLoaded" -ErrorAction SilentlyContinue)) {
+    . "$PSScriptRoot\BaseVendor.ps1"
+    $script:BaseVendorLoaded = $true
+}
+
 . "$PSScriptRoot\GitHubVendor.ps1"
 . "$PSScriptRoot\MicrosoftVendor.ps1"
 . "$PSScriptRoot\IBMVendor.ps1"
 . "$PSScriptRoot\ZDIVendor.ps1"
+. "$PSScriptRoot\GenericVendor.ps1"
 
 class VendorManager {
     [BaseVendor[]]$Vendors
@@ -41,6 +46,7 @@ class VendorManager {
         Write-Log -Message "Using $($vendor.VendorName) vendor for URL: $url" -Level "DEBUG"
 
         try {
+            Write-Log -Message "Calling ExtractData on $($vendor.VendorName) with content length: $($htmlContent.Length)" -Level "DEBUG"
             $result = $vendor.ExtractData($htmlContent, $url)
 
             # Add vendor information to the result
