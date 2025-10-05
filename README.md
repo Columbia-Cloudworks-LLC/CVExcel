@@ -1,10 +1,10 @@
-# CVExcel - CVE Advisory Scraper
+# CVExcel - Two-Stage CVE Data Collection & Enrichment System
 
-**Automated CVE data extraction and patch information gathering tool**
+**Stage 1: Collect CVE data from NIST • Stage 2: Enrich with vendor patch information**
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-7.x-blue.svg)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-production-brightgreen.svg)]()
+[![Status](https://img.shields.io/badge/status-production-brightgreen.svg)](https://github.com/your-username/CVExcel)
 
 ---
 
@@ -31,49 +31,121 @@
 
 ### Usage
 
-**GUI Mode** (Recommended):
-```powershell
-.\ui\CVExpand-GUI.ps1
-```
+**Complete Workflow** (Two-Stage Process):
 
-**Command Line Mode**:
-```powershell
-.\CVExpand.ps1 -InputFile "input.csv" -OutputFile "results.csv"
+1. **Stage 1: Collect CVE Data from NIST**
+   ```powershell
+   .\CVExcel.ps1
+   ```
+   - Select product and date range
+   - Downloads CVE data from NIST NVD API
+   - Outputs basic CSV with CVE information
+
+2. **Stage 2: Enrich with Vendor Data**
+   ```powershell
+   .\CVExpand.ps1
+   # OR for GUI mode:
+   .\ui\CVExpand-GUI.ps1
+   ```
+   - Load CSV from Stage 1
+   - Scrapes vendor websites for patch information
+   - Outputs enhanced CSV with download links and patches
+
+---
+
+## 🔄 Two-Stage Workflow
+
+```mermaid
+graph TD
+    A[Start: CVExcel.ps1] --> B[Select Product & Date Range]
+    B --> C[Query NIST NVD API]
+    C --> D[Generate Basic CVE CSV]
+    D --> E[Stage 1 Complete]
+
+    E --> F[Start: CVExpand.ps1]
+    F --> G[Load CVE CSV from Stage 1]
+    G --> H[Extract Reference URLs]
+    H --> I[Route to Vendor Modules]
+
+    I --> J[MicrosoftVendor]
+    I --> K[GitHubVendor]
+    I --> L[IBMVendor]
+    I --> M[ZDIVendor]
+    I --> N[GenericVendor]
+
+    J --> O[Extract MSRC Data]
+    K --> P[Extract GitHub Data]
+    L --> Q[Extract IBM Data]
+    M --> R[Extract ZDI Data]
+    N --> S[Extract Generic Data]
+
+    O --> T[Enhanced CSV with Patches]
+    P --> T
+    Q --> T
+    R --> T
+    S --> T
+
+    T --> U[Stage 2 Complete]
+
+    style A fill:#e1f5fe
+    style F fill:#f3e5f5
+    style T fill:#e8f5e8
 ```
 
 ---
 
 ## 📋 What It Does
 
-CVExcel automates the extraction of vulnerability and patch information from multiple security vendor sources:
+CVExcel provides a comprehensive two-stage CVE data collection and enrichment system:
 
-✅ **Microsoft Security Response Center (MSRC)** - via official API
-✅ **GitHub Security Advisories** - via GitHub API
-✅ **IBM Security Bulletins** - via web scraping
-✅ **Zero Day Initiative (ZDI)** - via web scraping
-✅ **Other vendors** - extensible vendor system
+### Stage 1: NIST CVE Collection (CVExcel.ps1)
+- 📊 **NIST NVD API Integration** - Official vulnerability database access
+- 🎯 **Product-Based Filtering** - Search by keywords or CPE identifiers
+- 📅 **Date Range Support** - Filter by publication or modification dates
+- 🔑 **API Key Support** - Higher rate limits with NVD API key
+- 📋 **Basic CVE Data** - CVSS scores, descriptions, reference URLs
 
-### Features
+### Stage 2: Vendor Data Enrichment (CVExpand.ps1)
+- 🔗 **Vendor-Specific Scraping** - Extracts patch information from vendor websites
+- ✅ **Microsoft MSRC** - KB articles and download links
+- ✅ **GitHub Security Advisories** - Repository security updates
+- ✅ **IBM Security Bulletins** - IBM patch information
+- ✅ **Zero Day Initiative (ZDI)** - Vulnerability disclosures
+- ✅ **Generic Vendors** - Extensible system for any vendor
 
-- 🎯 **Automatic KB Article Extraction** - Gets patch download links from Microsoft
-- 🔄 **Vendor-Specific Handlers** - Optimized extraction for each vendor
-- 📊 **CSV Input/Output** - Easy integration with existing workflows
-- 🖥️ **GUI Interface** - User-friendly interface for batch processing
-- 📝 **Comprehensive Logging** - Detailed logs for troubleshooting
+### Key Features
+- 🎯 **Automatic Patch Extraction** - Gets download links and KB articles
+- 🔄 **Modular Architecture** - Vendor-specific handlers for optimal extraction
+- 🖥️ **Dual Interface** - GUI and command-line modes
+- 📝 **Comprehensive Logging** - Detailed operation logs
 - 🔒 **NIST Security Compliant** - Follows security best practices
+- 🚀 **Playwright Integration** - Handles JavaScript-heavy pages
 
 ---
 
 ## 📊 Output Format
 
-CVExcel enriches your CVE data with:
+### Stage 1 Output (CVExcel.ps1)
+Basic CVE data from NIST NVD:
 
 | Field | Description |
 |-------|-------------|
-| **CVE** | CVE identifier |
+| **CVE** | CVE identifier (e.g., CVE-2024-21302) |
+| **Published** | Publication date |
+| **LastModified** | Last modification date |
+| **CVSS_BaseScore** | CVSS severity score |
+| **Severity** | Severity rating (Critical/High/Medium/Low) |
+| **Summary** | Vulnerability description |
+| **RefUrls** | Reference URLs from NIST |
+| **Vendor/Product/Version** | Affected software information |
+
+### Stage 2 Output (CVExpand.ps1)
+Enhanced with vendor-specific data:
+
+| Field | Description |
+|-------|-------------|
 | **DownloadLinks** | Direct links to KB articles, patches, and security updates |
 | **PatchID** | KB article numbers or patch identifiers |
-| **Vendor** | Source vendor information |
 | **AffectedVersions** | List of affected software versions |
 | **Remediation** | Remediation steps and guidance |
 | **ScrapeStatus** | Success/failure status |
@@ -85,29 +157,29 @@ CVExcel enriches your CVE data with:
 
 ```
 CVExcel/
-├── CVExcel.ps1                 # Main entry point
-├── CVExpand.ps1                # Core expansion logic
+├── CVExcel.ps1                 # Stage 1: NIST CVE Collection
+├── CVExpand.ps1                # Stage 2: Vendor Data Enrichment
 ├── Install-Playwright.ps1      # Playwright setup
 ├── README.md                   # This file
 │
 ├── ui/                         # GUI modules
-│   ├── CVExpand-GUI.ps1       # GUI application
+│   ├── CVExpand-GUI.ps1       # Stage 2 GUI application
 │   ├── DependencyManager.ps1  # Dependency manager
 │   ├── ScrapingEngine.ps1     # Scraping engine
 │   └── PlaywrightWrapper.ps1  # Playwright wrapper
 │
 ├── vendors/                    # Vendor-specific modules
-│   ├── MicrosoftVendor.ps1    # Microsoft MSRC
-│   ├── GitHubVendor.ps1       # GitHub Security
-│   ├── IBMVendor.ps1          # IBM Security
-│   ├── ZDIVendor.ps1          # Zero Day Initiative
+│   ├── BaseVendor.ps1         # Base vendor class
+│   ├── MicrosoftVendor.ps1    # Microsoft MSRC scraper
+│   ├── GitHubVendor.ps1       # GitHub Security scraper
+│   ├── IBMVendor.ps1          # IBM Security scraper
+│   ├── ZDIVendor.ps1          # Zero Day Initiative scraper
+│   ├── GenericVendor.ps1      # Generic fallback scraper
 │   └── VendorManager.ps1      # Vendor coordinator
 │
 ├── tests/                      # Test scripts
 ├── docs/                       # Documentation
-│   └── INDEX.md               # Documentation index
-│
-├── out/                        # Output directory
+├── out/                        # Output directory (CSV files)
 └── config/                     # Configuration files
 ```
 
@@ -132,37 +204,58 @@ CVExcel/
 
 ## 🎯 Key Features
 
-### Official Microsoft API Integration ⭐
+### Stage 1: NIST NVD API Integration ⭐
 
-**NEW:** Uses the official [Microsoft Security Updates API](https://github.com/microsoft/MSRC-Microsoft-Security-Updates-API) for reliable, fast CVE data extraction.
+**Official NIST NVD API v2.0** for reliable, comprehensive CVE data collection.
 
 **Benefits:**
-- ✅ No web scraping needed for MSRC pages
-- ✅ Direct KB article and download link extraction
-- ✅ Fast and reliable (~2 seconds per CVE)
-- ✅ Official Microsoft support
+- ✅ Official NIST vulnerability database access
+- ✅ Comprehensive CVE metadata (CVSS, descriptions, references)
+- ✅ Product-based filtering with CPE support
+- ✅ Rate limiting compliance (5-50 requests/30sec)
+- ✅ Automatic CPE resolution for keyword searches
 
-**Example Output:**
+**Example Stage 1 Output:**
+```text
+CVE-2024-21302, Critical, Remote Code Execution,
+Published: 2024-01-09, CVSS: 9.8
+Summary: Microsoft Remote Desktop Services Remote Code Execution Vulnerability
+RefUrls: https://msrc.microsoft.com/update-guide/vulnerability/CVE-2024-21302
 ```
-CVE-2024-21302
-  KB Articles: KB5062557, KB5055526, KB5055518, KB5041580...
+
+### Stage 2: Vendor Data Enrichment
+
+**Multi-vendor scraping system** with Playwright integration for JavaScript-heavy pages.
+
+**Benefits:**
+- ✅ Microsoft MSRC patch extraction
+- ✅ GitHub security advisory processing
+- ✅ IBM security bulletin parsing
+- ✅ Zero Day Initiative integration
+- ✅ Extensible vendor module system
+
+**Example Stage 2 Enhancement:**
+```text
+CVE-2024-21302 → Enhanced with:
+  KB Articles: KB5062557, KB5055526, KB5055518...
   Download Links: 18 links
     • https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB5062557
     • https://support.microsoft.com/help/5062557
     ... (16 more)
+  AffectedVersions: Windows 10, Windows 11, Windows Server 2016+
 ```
 
-### Vendor Module Architecture
+### Modular Vendor Architecture
 
 Extensible vendor-specific extraction modules:
-- **BaseVendor** - Common functionality
-- **MicrosoftVendor** - MSRC and Microsoft sites
-- **GitHubVendor** - GitHub repositories
-- **IBMVendor** - IBM security bulletins
-- **ZDIVendor** - Zero Day Initiative advisories
-- **GenericVendor** - Fallback for other sites
+- **BaseVendor** - Common interface and shared functionality
+- **MicrosoftVendor** - MSRC API integration and page scraping
+- **GitHubVendor** - GitHub API and repository scraping
+- **IBMVendor** - IBM security bulletin parsing
+- **ZDIVendor** - Zero Day Initiative advisory processing
+- **GenericVendor** - Fallback for unknown vendor sites
 
-**Add your own vendor** - See [Vendor Module Guide](docs/VENDOR_MODULARIZATION_SUMMARY.md)
+**Extensible Design** - See [Vendor Module Guide](docs/VENDOR_MODULARIZATION_SUMMARY.md) to add new vendors
 
 ---
 
@@ -189,28 +282,39 @@ Extensible vendor-specific extraction modules:
 
 ## 📖 Examples
 
-### Example 1: Process a CSV file via GUI
+### Example 1: Complete Two-Stage Workflow
 ```powershell
-# Launch GUI
-.\ui\CVExpand-GUI.ps1
+# Stage 1: Collect CVE data from NIST
+.\CVExcel.ps1
+# Select product: "microsoft windows"
+# Select date range: Last 30 days
+# Output: microsoft_windows_20251004_155424.csv
 
-# Select your CSV file
+# Stage 2: Enrich with vendor data
+.\ui\CVExpand-GUI.ps1
+# Load the CSV from Stage 1
 # Click "Start Scraping"
-# Results saved with enriched data
+# Output: Enhanced CSV with download links and patches
 ```
 
-### Example 2: Command line processing
+### Example 2: Command Line Processing
 ```powershell
-# Process a specific CSV
-.\CVExpand.ps1 -InputFile ".\data\cves.csv" -OutputFile ".\out\results.csv"
+# Stage 1: NIST data collection
+.\CVExcel.ps1  # Use GUI to select product and dates
+
+# Stage 2: Vendor enrichment
+.\CVExpand.ps1 -Url "https://msrc.microsoft.com/update-guide/vulnerability/CVE-2024-21302"
 
 # Check the results
-Import-Csv ".\out\results.csv" | Select-Object CVE, DownloadLinks
+Import-Csv ".\out\microsoft_windows_enhanced.csv" | Select-Object CVE, DownloadLinks
 ```
 
-### Example 3: Get KB articles for a specific CVE
+### Example 3: Direct NIST API Usage
 ```powershell
-# Using the official API directly
+# Test NIST API connectivity
+.\CVExcel.ps1  # Click "Test API" button in GUI
+
+# Or use PowerShell modules directly
 Import-Module MsrcSecurityUpdates
 $update = Get-MsrcSecurityUpdate -Vulnerability CVE-2024-21302
 $cvrf = Get-MsrcCvrfDocument -ID $update.value[0].ID
@@ -282,11 +386,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🔄 Version History
 
 ### Latest (October 2025)
-- ✨ **NEW:** Official Microsoft Security Updates API integration
-- ✨ **NEW:** Vendor module architecture
-- ✨ **NEW:** CVExpand-GUI with enhanced features
+- ✨ **NEW:** Two-stage CVE collection and enrichment system
+- ✨ **NEW:** NIST NVD API v2.0 integration for Stage 1
+- ✨ **NEW:** Modular vendor architecture for Stage 2
+- ✨ **NEW:** Playwright integration for JavaScript-heavy pages
+- ✨ **NEW:** CVExpand-GUI with enhanced batch processing
 - 🐛 Fixed MSRC page scraping issues
-- 📚 Comprehensive documentation overhaul
+- 📚 Comprehensive documentation and README overhaul
 
 ### Previous Versions
 See [docs/archive/](docs/archive/) for historical documentation.
