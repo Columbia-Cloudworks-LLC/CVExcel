@@ -419,4 +419,18 @@ FodyWeavers.xsd
 
 # API Keys
 *.api.key
+
+# Output Files
 ./out/*
+*test*.txt
+*.html
+
+# Playwright Files
+./packages/*
+.playwright/
+./playwright-test-results/*
+./playwright-report/*
+./playwright-test-results-debug/*
+./playwright-report-debug/*
+./playwright-test-results-debug-verbose/*
+./playwright-report-debug-verbose/*

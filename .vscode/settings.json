@@ -1,0 +1,57 @@
+{
+    "powershell.powerShellDefaultVersion": "Windows PowerShell (x64)",
+    "powershell.enableProfileLoading": false,
+    "powershell.scriptAnalysis.enable": true,
+    "powershell.scriptAnalysis.settingsPath": "",
+    "powershell.integratedConsole.showOnStartup": false,
+    "powershell.codeFormatting.preset": "OTBS",
+    "powershell.codeFormatting.useCorrectCasing": true,
+    "powershell.codeFormatting.newLineAfterCloseBrace": true,
+    "powershell.codeFormatting.newLineAfterOpenBrace": true,
+    "powershell.codeFormatting.trimWhitespaceAroundPipe": true,
+    "powershell.codeFormatting.useConstantStrings": false,
+    "files.associations": {
+        "*.ps1": "powershell",
+        "*.psd1": "powershell",
+        "*.psm1": "powershell"
+    },
+    "files.exclude": {
+        "**/out/*.log": true,
+        "**/out/*_backup*.csv": true
+    },
+    "search.exclude": {
+        "**/out/*.log": true,
+        "**/out/*_backup*.csv": true,
+        "**/node_modules": true,
+        "**/.git": true
+    },
+    "editor.formatOnSave": true,
+    "editor.formatOnType": false,
+    "editor.insertSpaces": true,
+    "editor.tabSize": 4,
+    "editor.detectIndentation": false,
+    "editor.rulers": [80, 120],
+    "editor.wordWrap": "bounded",
+    "editor.wordWrapColumn": 120,
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true,
+    "powershell.helpCompletion": "BlockComment",
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+    "terminal.integrated.profiles.windows": {
+        "PowerShell": {
+            "source": "PowerShell",
+            "icon": "terminal-powershell"
+        }
+    },
+    "workbench.colorCustomizations": {
+        "terminal.background": "#1e1e1e",
+        "terminal.foreground": "#cccccc"
+    },
+    "extensions.recommendations": [
+        "ms-vscode.powershell",
+        "ms-vscode.vscode-json",
+        "redhat.vscode-yaml",
+        "ms-vscode.vscode-markdown"
+    ]
+}

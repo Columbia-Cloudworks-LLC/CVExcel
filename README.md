@@ -1,349 +1,408 @@
-# CVExcel
+# CVExcel - Two-Stage CVE Data Collection & Enrichment System
 
-A PowerShell-based GUI tool that queries the **NIST NVD CVE API v2.0** and exports vulnerability data to CSV. Perfect for security analysts who need to track CVEs for specific products or CPEs.
+**Stage 1: Collect CVE data from NIST • Stage 2: Enrich with vendor patch information**
 
----
-
-## Features
-
-- **🎨 Simple GUI**: WPF-based interface with product dropdown and date range pickers
-- **🔍 Flexible Search**: 
-  - Keyword search (e.g., "microsoft windows")
-  - CPE-based search (e.g., "cpe:2.3:o:microsoft:windows_10:*:*:*:*:*:*:*:*")
-  - Automatic CPE resolution when keyword search returns 0 results
-- **📊 Comprehensive Data**: 
-  - CVE metadata (ID, published date, last modified)
-  - CVSS scores (v3.1, v3.0, v2 with automatic fallback)
-  - Severity ratings (Critical/High/Medium/Low)
-  - Affected products with vendor/product/version breakdowns
-  - Reference URLs
-- **🚀 Robust Error Handling**:
-  - Automatic retry with exponential backoff
-  - Fallback from last-modified to publication dates on 404
-  - Public API access fallback if API key is invalid
-  - Comprehensive diagnostic tools
-- **✅ NIST Compliance**: 
-  - Follows NVD API best practices
-  - Respects rate limits (6-second delays between requests)
-  - Proper API key header formatting
-- **📁 Clean Output**: Timestamped CSV files in `./out/` directory
+[![PowerShell](https://img.shields.io/badge/PowerShell-7.x-blue.svg)](https://github.com/PowerShell/PowerShell)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-production-brightgreen.svg)](https://github.com/your-username/CVExcel)
 
 ---
 
-## Requirements
+## 🚀 Quick Start
 
-- **Windows PowerShell 5.1+** or **PowerShell 7+**
-- Internet connection to `services.nvd.nist.gov`
-- (Recommended) **NVD API key** for higher rate limits
+### Prerequisites
+- **PowerShell 7.x** or higher
+- **Windows 10/11** or Windows Server 2016+
+- **Internet connection** for API access
 
----
+### Installation
 
-## Quick Start
+1. **Clone or download this repository**
 
-### 1. Request an NVD API Key (Recommended)
-
-1. Visit https://nvd.nist.gov/developers/request-an-api-key
-2. Fill out the form and submit
-3. **Check your email** and click the activation link (expires in 7 days)
-4. **Copy the API key** from the activation page
-5. Save it to `nvd.api.key` file next to the script:
+2. **Install the Microsoft Security Updates API module** (required for MSRC data):
    ```powershell
-   "your-api-key-here" | Out-File -FilePath .\nvd.api.key -NoNewline
-   ```
-   Or set as environment variable:
-   ```powershell
-   $env:NVD_API_KEY = "your-api-key-here"
+   Install-Module -Name MsrcSecurityUpdates -Scope CurrentUser -Force
    ```
 
-**Important**: Without an API key, you're limited to **5 requests per 30 seconds**. With a key, you get **50 requests per 30 seconds**.
+3. **Optional: Install Playwright** for JavaScript-heavy sites:
+   ```powershell
+   .\Install-Playwright.ps1
+   ```
 
-### 2. Create Your Products List
+### Usage
 
-Create a `products.txt` file with one product or CPE per line:
+**Complete Workflow** (Two-Stage Process):
 
+1. **Stage 1: Collect CVE Data from NIST**
+   ```powershell
+   .\CVExcel.ps1
+   ```
+   - Select product and date range
+   - Downloads CVE data from NIST NVD API
+   - Outputs basic CSV with CVE information
+
+2. **Stage 2: Enrich with Vendor Data**
+   ```powershell
+   .\CVExpand.ps1
+   # OR for GUI mode:
+   .\ui\CVExpand-GUI.ps1
+   ```
+   - Load CSV from Stage 1
+   - Scrapes vendor websites for patch information
+   - Outputs enhanced CSV with download links and patches
+
+---
+
+## 🔄 Two-Stage Workflow
+
+```mermaid
+graph TD
+    A[Start: CVExcel.ps1] --> B[Select Product & Date Range]
+    B --> C[Query NIST NVD API]
+    C --> D[Generate Basic CVE CSV]
+    D --> E[Stage 1 Complete]
+
+    E --> F[Start: CVExpand.ps1]
+    F --> G[Load CVE CSV from Stage 1]
+    G --> H[Extract Reference URLs]
+    H --> I[Route to Vendor Modules]
+
+    I --> J[MicrosoftVendor]
+    I --> K[GitHubVendor]
+    I --> L[IBMVendor]
+    I --> M[ZDIVendor]
+    I --> N[GenericVendor]
+
+    J --> O[Extract MSRC Data]
+    K --> P[Extract GitHub Data]
+    L --> Q[Extract IBM Data]
+    M --> R[Extract ZDI Data]
+    N --> S[Extract Generic Data]
+
+    O --> T[Enhanced CSV with Patches]
+    P --> T
+    Q --> T
+    R --> T
+    S --> T
+
+    T --> U[Stage 2 Complete]
+
+    style A fill:#e1f5fe
+    style F fill:#f3e5f5
+    style T fill:#e8f5e8
+```
+
+---
+
+## 📋 What It Does
+
+CVExcel provides a comprehensive two-stage CVE data collection and enrichment system:
+
+### Stage 1: NIST CVE Collection (CVExcel.ps1)
+- 📊 **NIST NVD API Integration** - Official vulnerability database access
+- 🎯 **Product-Based Filtering** - Search by keywords or CPE identifiers
+- 📅 **Date Range Support** - Filter by publication or modification dates
+- 🔑 **API Key Support** - Higher rate limits with NVD API key
+- 📋 **Basic CVE Data** - CVSS scores, descriptions, reference URLs
+
+### Stage 2: Vendor Data Enrichment (CVExpand.ps1)
+- 🔗 **Vendor-Specific Scraping** - Extracts patch information from vendor websites
+- ✅ **Microsoft MSRC** - KB articles and download links
+- ✅ **GitHub Security Advisories** - Repository security updates
+- ✅ **IBM Security Bulletins** - IBM patch information
+- ✅ **Zero Day Initiative (ZDI)** - Vulnerability disclosures
+- ✅ **Generic Vendors** - Extensible system for any vendor
+
+### Key Features
+- 🎯 **Automatic Patch Extraction** - Gets download links and KB articles
+- 🔄 **Modular Architecture** - Vendor-specific handlers for optimal extraction
+- 🖥️ **Dual Interface** - GUI and command-line modes
+- 📝 **Comprehensive Logging** - Detailed operation logs
+- 🔒 **NIST Security Compliant** - Follows security best practices
+- 🚀 **Playwright Integration** - Handles JavaScript-heavy pages
+
+---
+
+## 📊 Output Format
+
+### Stage 1 Output (CVExcel.ps1)
+Basic CVE data from NIST NVD:
+
+| Field | Description |
+|-------|-------------|
+| **CVE** | CVE identifier (e.g., CVE-2024-21302) |
+| **Published** | Publication date |
+| **LastModified** | Last modification date |
+| **CVSS_BaseScore** | CVSS severity score |
+| **Severity** | Severity rating (Critical/High/Medium/Low) |
+| **Summary** | Vulnerability description |
+| **RefUrls** | Reference URLs from NIST |
+| **Vendor/Product/Version** | Affected software information |
+
+### Stage 2 Output (CVExpand.ps1)
+Enhanced with vendor-specific data:
+
+| Field | Description |
+|-------|-------------|
+| **DownloadLinks** | Direct links to KB articles, patches, and security updates |
+| **PatchID** | KB article numbers or patch identifiers |
+| **AffectedVersions** | List of affected software versions |
+| **Remediation** | Remediation steps and guidance |
+| **ScrapeStatus** | Success/failure status |
+| **ScrapedDate** | Timestamp of data extraction |
+
+---
+
+## 🏗️ Project Structure
+
+```
+CVExcel/
+├── CVExcel.ps1                 # Stage 1: NIST CVE Collection
+├── CVExpand.ps1                # Stage 2: Vendor Data Enrichment
+├── Install-Playwright.ps1      # Playwright setup
+├── README.md                   # This file
+│
+├── ui/                         # GUI modules
+│   ├── CVExpand-GUI.ps1       # Stage 2 GUI application
+│   ├── DependencyManager.ps1  # Dependency manager
+│   ├── ScrapingEngine.ps1     # Scraping engine
+│   └── PlaywrightWrapper.ps1  # Playwright wrapper
+│
+├── vendors/                    # Vendor-specific modules
+│   ├── BaseVendor.ps1         # Base vendor class
+│   ├── MicrosoftVendor.ps1    # Microsoft MSRC scraper
+│   ├── GitHubVendor.ps1       # GitHub Security scraper
+│   ├── IBMVendor.ps1          # IBM Security scraper
+│   ├── ZDIVendor.ps1          # Zero Day Initiative scraper
+│   ├── GenericVendor.ps1      # Generic fallback scraper
+│   └── VendorManager.ps1      # Vendor coordinator
+│
+├── tests/                      # Test scripts
+├── docs/                       # Documentation
+├── out/                        # Output directory (CSV files)
+└── config/                     # Configuration files
+```
+
+---
+
+## 📚 Documentation
+
+**📖 [Complete Documentation Index](docs/INDEX.md)**
+
+### Essential Guides
+- **[Quick Start Guide](docs/QUICK_START.md)** - Get up and running
+- **[MSRC API Solution](docs/MSRC_API_SOLUTION.md)** ⭐ **RECOMMENDED** - Microsoft CVE extraction
+- **[Vendor Module Guide](docs/VENDOR_MODULARIZATION_SUMMARY.md)** - Adding custom vendors
+- **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Production deployment
+
+### Technical Documentation
+- **[API Reference](docs/API_REFERENCE.md)** - Function reference
+- **[Project Overview](docs/PROJECT_OVERVIEW.md)** - Architecture overview
+- **[Implementation Details](docs/IMPLEMENTATION_COMPLETE_CVEXPAND_GUI.md)** - Technical details
+
+---
+
+## 🎯 Key Features
+
+### Stage 1: NIST NVD API Integration ⭐
+
+**Official NIST NVD API v2.0** for reliable, comprehensive CVE data collection.
+
+**Benefits:**
+- ✅ Official NIST vulnerability database access
+- ✅ Comprehensive CVE metadata (CVSS, descriptions, references)
+- ✅ Product-based filtering with CPE support
+- ✅ Rate limiting compliance (5-50 requests/30sec)
+- ✅ Automatic CPE resolution for keyword searches
+
+**Example Stage 1 Output:**
 ```text
-# Keywords (broad search)
-microsoft windows
-mozilla firefox
-google chrome
-
-# CPE 2.3 URIs (precise search)
-cpe:2.3:o:microsoft:windows_10:*:*:*:*:*:*:*:*
-cpe:2.3:a:adobe:acrobat_reader:*:*:*:*:*:*:*:*
+CVE-2024-21302, Critical, Remote Code Execution,
+Published: 2024-01-09, CVSS: 9.8
+Summary: Microsoft Remote Desktop Services Remote Code Execution Vulnerability
+RefUrls: https://msrc.microsoft.com/update-guide/vulnerability/CVE-2024-21302
 ```
 
-### 3. Run the Script
+### Stage 2: Vendor Data Enrichment
 
+**Multi-vendor scraping system** with Playwright integration for JavaScript-heavy pages.
+
+**Benefits:**
+- ✅ Microsoft MSRC patch extraction
+- ✅ GitHub security advisory processing
+- ✅ IBM security bulletin parsing
+- ✅ Zero Day Initiative integration
+- ✅ Extensible vendor module system
+
+**Example Stage 2 Enhancement:**
+```text
+CVE-2024-21302 → Enhanced with:
+  KB Articles: KB5062557, KB5055526, KB5055518...
+  Download Links: 18 links
+    • https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB5062557
+    • https://support.microsoft.com/help/5062557
+    ... (16 more)
+  AffectedVersions: Windows 10, Windows 11, Windows Server 2016+
+```
+
+### Modular Vendor Architecture
+
+Extensible vendor-specific extraction modules:
+- **BaseVendor** - Common interface and shared functionality
+- **MicrosoftVendor** - MSRC API integration and page scraping
+- **GitHubVendor** - GitHub API and repository scraping
+- **IBMVendor** - IBM security bulletin parsing
+- **ZDIVendor** - Zero Day Initiative advisory processing
+- **GenericVendor** - Fallback for unknown vendor sites
+
+**Extensible Design** - See [Vendor Module Guide](docs/VENDOR_MODULARIZATION_SUMMARY.md) to add new vendors
+
+---
+
+## 🛠️ Requirements
+
+### System Requirements
+- **OS:** Windows 10/11, Windows Server 2016+
+- **PowerShell:** Version 7.x or higher
+- **Memory:** 2GB RAM minimum
+- **Disk:** 500MB free space
+
+### PowerShell Modules
+- **MsrcSecurityUpdates** (required for Microsoft CVEs)
+  ```powershell
+  Install-Module -Name MsrcSecurityUpdates -Scope CurrentUser
+  ```
+
+- **Playwright** (optional, for JavaScript-heavy sites)
+  ```powershell
+  .\Install-Playwright.ps1
+  ```
+
+---
+
+## 📖 Examples
+
+### Example 1: Complete Two-Stage Workflow
 ```powershell
+# Stage 1: Collect CVE data from NIST
 .\CVExcel.ps1
+# Select product: "microsoft windows"
+# Select date range: Last 30 days
+# Output: microsoft_windows_20251004_155424.csv
+
+# Stage 2: Enrich with vendor data
+.\ui\CVExpand-GUI.ps1
+# Load the CSV from Stage 1
+# Click "Start Scraping"
+# Output: Enhanced CSV with download links and patches
 ```
 
-### 4. Use the GUI
-
-1. **Select a product** from the dropdown
-2. **Choose date range** (defaults to last 7 days, UTC)
-3. **Options**:
-   - ✅ "Use last-modified dates" (recommended for tracking changes)
-   - ☐ "Validate product only (no dates)" (test query without date filter)
-4. **Test API** button - Verify connectivity and API key status
-5. **OK** - Export CVEs to CSV
-
-### 5. Find Your Results
-
-CSV files are saved to `./out/` with format: `<product>_<yyyyMMdd_HHmmss>.csv`
-
----
-
-## Usage Details
-
-### GUI Options
-
-- **Product**: Select from your `products.txt` list
-- **Start/End Date (UTC)**: Date range for CVE publication or modification
-- **Use last-modified dates**: 
-  - ✅ Checked: Search by when CVEs were last modified (good for tracking updates)
-  - ☐ Unchecked: Search by publication date (default)
-- **Validate product only**: 
-  - ✅ Checked: Runs query without date filters (useful for testing)
-  - ☐ Unchecked: Uses date range (default)
-- **Test API**: Runs diagnostic tests to verify:
-  - API endpoint connectivity
-  - API key validity
-  - Keyword search functionality
-  - Rate limit status
-
-### Output CSV Schema
-
-| Column | Description |
-|--------|-------------|
-| `ProductFilter` | Selected product from GUI |
-| `CVE` | CVE identifier (e.g., CVE-2025-12345) |
-| `Published` | NVD publication timestamp |
-| `LastModified` | Last modified timestamp |
-| `CVSS_BaseScore` | Base score (v3.1 → v3.0 → v2 fallback) |
-| `Severity` | Critical/High/Medium/Low |
-| `Summary` | English description |
-| `RefUrls` | Reference URLs (pipe-separated) |
-| `Vendor` | Vendor from CPE (if available) |
-| `Product` | Product from CPE (if available) |
-| `Version` | Version from CPE (if available) |
-| `CPE23Uri` | Full CPE 2.3 URI (if available) |
-
----
-
-## How It Works
-
-### Query Flow
-
-1. **Product Selection**:
-   - If product starts with `cpe:2.3:` → uses CPE name filter
-   - Otherwise → uses keyword search
-2. **Keyword Search Fallback**:
-   - If keyword search returns 0 results
-   - Automatically resolves top 5 CPE candidates
-   - Retries with CPE-based search
-3. **Date Filtering**:
-   - Uses last-modified dates (if checkbox selected)
-   - Falls back to publication dates on 404 error
-4. **API Key Management**:
-   - Tries with API key first
-   - Falls back to public access if key is invalid
-   - Shows clear warnings about rate limits
-5. **Pagination**:
-   - Fetches up to 2000 results per page
-   - Automatically handles multiple pages
-   - Respects 6-second delay between requests
-
-### Error Handling
-
-- **Automatic retries** with exponential backoff (3 attempts)
-- **Fallback strategies**:
-  - Invalid API key → public access
-  - Last-modified dates 404 → publication dates
-  - Keyword returns 0 → CPE resolution
-- **User-friendly error messages** with troubleshooting guidance
-- **Comprehensive logging** with `-Verbose` flag support
-
----
-
-## API Key Troubleshooting
-
-### "API key returned 404 - likely invalid/expired"
-
-**Causes**:
-1. Key not activated (you must click the email link within 7 days)
-2. Key expired or revoked
-3. Key has incorrect format (should be UUID: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`)
-
-**Solution**:
-1. Request new key at https://nvd.nist.gov/developers/request-an-api-key
-2. **Check your email** and click the activation link
-3. Copy the activated key from the webpage
-4. Update `nvd.api.key` file or `$env:NVD_API_KEY`
-
-**Note**: The tool will automatically fall back to public access (5 requests/30sec) if your key is invalid.
-
----
-
-## Best Practices
-
-### Rate Limiting
-- **With API key**: Up to 50 requests per 30 seconds
-- **Without API key**: Only 5 requests per 30 seconds
-- Script automatically sleeps 6 seconds between requests
-- Use narrow date ranges to reduce requests
-
-### Search Strategy
-1. **Test with "Validate product only"** to verify product name
-2. **Use CPE for precision** when you know the exact product
-3. **Use keywords for discovery** when exploring
-4. **Narrow date ranges** for faster exports
-
-### Data Maintenance
-- Run **weekly** with last-modified dates to catch CVE updates
-- Keep **separate `products.txt`** files per client/project
-- Use **version control** for `products.txt` to track changes
-
----
-
-## Troubleshooting
-
-### GUI doesn't appear
-- Ensure you're running in a **desktop session** (not headless)
-- PowerShell 7 on Windows supports WPF
-- Try running as administrator if permissions issue
-
-### Empty/No results
-- Check date range (remember: **UTC timezone**)
-- Verify product name with "Validate product only"
-- Try broader keyword first, then refine to CPE
-- Check verbose output: `.\CVExcel.ps1 -Verbose`
-
-### Rate limit errors
-- Ensure API key is properly activated
-- Check rate limit with "Test API" button
-- Reduce date range or number of products
-- Wait 30 seconds before retrying
-
-### 404 errors
-- Run "Test API" diagnostic to check connectivity
-- Regenerate API key if test shows it's invalid
-- Verify internet connection to `services.nvd.nist.gov`
-- Check firewall/proxy settings
-
----
-
-## Advanced Usage
-
-### Command Line Parameters
-
-The GUI runs automatically, but you can access verbose logging:
-
+### Example 2: Command Line Processing
 ```powershell
-.\CVExcel.ps1 -Verbose
+# Stage 1: NIST data collection
+.\CVExcel.ps1  # Use GUI to select product and dates
+
+# Stage 2: Vendor enrichment
+.\CVExpand.ps1 -Url "https://msrc.microsoft.com/update-guide/vulnerability/CVE-2024-21302"
+
+# Check the results
+Import-Csv ".\out\microsoft_windows_enhanced.csv" | Select-Object CVE, DownloadLinks
 ```
 
-### API Key Priority
-
-The script checks for API key in this order:
-1. `./nvd.api.key` file (in script directory)
-2. `$env:NVD_API_KEY` environment variable
-3. Falls back to public access if neither exists
-
-### Custom Products List
-
-You can create multiple product files:
+### Example 3: Direct NIST API Usage
 ```powershell
-# Copy products.txt to products_client1.txt
-Copy-Item products.txt products_client1.txt
+# Test NIST API connectivity
+.\CVExcel.ps1  # Click "Test API" button in GUI
 
-# Edit for specific client
-notepad products_client1.txt
-
-# Rename for script to use
-Move-Item products_client1.txt products.txt -Force
-.\CVExcel.ps1
+# Or use PowerShell modules directly
+Import-Module MsrcSecurityUpdates
+$update = Get-MsrcSecurityUpdate -Vulnerability CVE-2024-21302
+$cvrf = Get-MsrcCvrfDocument -ID $update.value[0].ID
+$cvrf.Vulnerability | Where-Object {$_.CVE -eq 'CVE-2024-21302'} |
+    Select-Object -ExpandProperty Remediations |
+    Where-Object {$_.URL -match 'catalog.update.microsoft.com'}
 ```
 
 ---
 
-## Technical Details
+## 🤝 Contributing
 
-### NVD API v2.0
-- Base URL: `https://services.nvd.nist.gov/rest/json/cves/2.0`
-- Supports: CPE name filter, keyword search, date ranges
-- Rate limits: 5/30sec (public), 50/30sec (with key)
-- Max results per page: 2000
+Contributions are welcome! Please:
 
-### Date Handling
-- All dates in **ISO-8601 UTC** format
-- DatePicker input converted: `YYYY-MM-DD 00:00:00.000Z` (start) to `YYYY-MM-DD 23:59:59.999Z` (end)
-- Supports both publication dates and last-modified dates
+1. Check existing documentation and issues
+2. Follow PowerShell best practices
+3. Include tests for new features
+4. Update documentation as needed
 
-### CPE 2.3 Format
-```
-cpe:2.3:part:vendor:product:version:update:edition:language:sw_edition:target_sw:target_hw:other
-```
+See [docs/](docs/) for coding standards and architecture.
 
 ---
 
-## Roadmap
+## 🔒 Security
 
-- [ ] **CISA KEV integration** - Flag known exploited vulnerabilities
-- [ ] **Excel export** - Multi-sheet XLSX with formatting
-- [ ] **Scheduled exports** - Automated weekly/monthly runs
-- [ ] **Email notifications** - Send reports automatically
-- [ ] **Filters** - By CVSS score, severity, or date range
-- [ ] **Saved profiles** - Reusable configurations per client
-- [ ] **Webhook support** - Push to Teams/Slack channels
+This project follows NIST security guidelines. See the [Security Policy](SECURITY.md) for details.
 
----
-
-## Important Notices
-
-### NVD Data Usage
-
-**This product uses data from the NVD API but is not endorsed or certified by the NVD.**
-
-Data is provided by NIST NVD and is in the public domain per Title 17 of the United States Code. You may not use the NVD name to imply endorsement.
-
-For citation information, see: https://nvd.nist.gov/general/faq
-
-### Rate Limits
-
-Per NIST NVD API best practices:
-- Sleep 6 seconds between requests (implemented)
-- Request API key for production use (recommended)
-- Check for updates no more than once every 2 hours
+**Security Features:**
+- Input validation on all user-provided data
+- Secure API authentication
+- Comprehensive logging for audit trails
+- Rate limiting and retry logic
+- Error handling without information disclosure
 
 ---
 
-## Contributing
+## 📝 License
 
-Contributions welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Test thoroughly with both public and authenticated access
-4. Submit a pull request with description
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## License
+## 🙏 Acknowledgments
 
-MIT License - See `LICENSE` file for details
-
----
-
-## Support
-
-- **Issues**: GitHub Issues tracker
-- **NVD API**: https://nvd.nist.gov/developers
-- **NVD Support**: nvd@nist.gov
+- **Microsoft Security Response Center** - For the official Security Updates API
+- **PowerShell Community** - For excellent modules and support
+- **Security Researchers** - For CVE data and advisories
 
 ---
 
-## Acknowledgments
+## 📞 Support
 
-- **NIST National Vulnerability Database** for providing the CVE API v2.0
-- **CPE 2.3 Specification** for product identification standards
-- PowerShell community for WPF examples and best practices
+### Documentation
+- **[Documentation Index](docs/INDEX.md)** - Complete documentation
+- **[Quick Start](docs/QUICK_START.md)** - Get started quickly
+- **[FAQ](docs/README.md)** - Frequently asked questions
+
+### Issues
+- Check [existing documentation](docs/INDEX.md) first
+- Review [archived docs](docs/archive/) for historical context
+- Create an issue if needed with:
+  - Clear description
+  - Steps to reproduce
+  - Expected vs actual behavior
+  - Log files (from `out/scrape_log_*.log`)
+
+---
+
+## 🔄 Version History
+
+### Latest (October 2025)
+- ✨ **NEW:** Two-stage CVE collection and enrichment system
+- ✨ **NEW:** NIST NVD API v2.0 integration for Stage 1
+- ✨ **NEW:** Modular vendor architecture for Stage 2
+- ✨ **NEW:** Playwright integration for JavaScript-heavy pages
+- ✨ **NEW:** CVExpand-GUI with enhanced batch processing
+- 🐛 Fixed MSRC page scraping issues
+- 📚 Comprehensive documentation and README overhaul
+
+### Previous Versions
+See [docs/archive/](docs/archive/) for historical documentation.
+
+---
+
+## 🌟 Star History
+
+If you find this tool useful, please consider giving it a star! ⭐
+
+---
+
+**Built with ❤️ and PowerShell**

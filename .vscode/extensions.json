@@ -1,0 +1,16 @@
+{
+    "recommendations": [
+        "ms-vscode.powershell",
+        "ms-vscode.vscode-json",
+        "redhat.vscode-yaml",
+        "ms-vscode.vscode-markdown",
+        "ms-vscode.vscode-github-issue-notebooks",
+        "ms-vscode.vscode-typescript-next",
+        "ms-vscode.hexeditor",
+        "ms-vscode.vscode-csv",
+        "ms-vscode.powershell-preview"
+    ],
+    "unwantedRecommendations": [
+        "ms-vscode.vscode-typescript"
+    ]
+}

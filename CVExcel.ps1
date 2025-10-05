@@ -189,12 +189,54 @@ function Get-NvdCves {
     throw "Either KeywordOrCpe or CpeNames must be provided"
   }
 
+  $useCpeArray = ($CpeNames -and $CpeNames.Count -gt 0)
+  $isCpeSingle = (-not $useCpeArray) -and ($KeywordOrCpe -like 'cpe:2.3:*')
+
+  # Handle date range chunking for large ranges
+  if (-not $NoDateFilter -and $StartIso -and $EndIso) {
+    $startDate = [DateTime]::Parse($StartIso)
+    $endDate = [DateTime]::Parse($EndIso)
+    $totalDays = ($endDate - $startDate).TotalDays
+    
+    # NVD API 2.0 has a 120-day limit per request
+    if ($totalDays -gt 120) {
+      $chunkCount = [math]::Ceiling($totalDays / 120)
+      Write-Host "Date range exceeds 120 days ($([math]::Round($totalDays)) days). Splitting into $chunkCount chunks..." -ForegroundColor Yellow
+      
+      $allResults = @()
+      $currentStart = $startDate
+      
+      while ($currentStart -lt $endDate) {
+        $currentEnd = [DateTime]::Min($currentStart.AddDays(120), $endDate)
+        $chunkStartIso = $currentStart.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'")
+        $chunkEndIso = $currentEnd.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'")
+        
+        Write-Host "Processing chunk: $($currentStart.ToString('yyyy-MM-dd')) to $($currentEnd.ToString('yyyy-MM-dd'))" -ForegroundColor Gray
+        
+        try {
+          $chunkResults = Get-NvdCves -KeywordOrCpe $KeywordOrCpe -CpeNames $CpeNames -StartIso $chunkStartIso -EndIso $chunkEndIso -ApiKey $ApiKey -UseLastModified:$UseLastModified -NoDateFilter:$false -ForcePublic:$ForcePublic
+          $allResults += $chunkResults
+          Write-Host "Retrieved $($chunkResults.Count) CVEs from this chunk" -ForegroundColor Green
+        } catch {
+          Write-Host "Failed to retrieve chunk: $($_.Exception.Message)" -ForegroundColor Red
+          throw
+        }
+        
+        $currentStart = $currentEnd.AddSeconds(1)
+        
+        # Rate limiting between chunks
+        Start-Sleep -Seconds 2
+      }
+      
+      Write-Host "Total CVEs retrieved across all chunks: $($allResults.Count)" -ForegroundColor Green
+      return $allResults
+    }
+  }
+
+  # Single request (within 120-day limit or no date filter)
   $resultsPerPage = 2000
   $startIndex     = 0
   $all            = @()
-
-  $useCpeArray = ($CpeNames -and $CpeNames.Count -gt 0)
-  $isCpeSingle = (-not $useCpeArray) -and ($KeywordOrCpe -like 'cpe:2.3:*')
 
   do {
     $q = @{ resultsPerPage = $resultsPerPage; startIndex = $startIndex }
@@ -544,10 +586,12 @@ function Get-NvdApiStatus {
 [xml]$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="NVD CVE Exporter" Height="300" Width="560"
+        Title="NVD CVE Exporter" Height="400" Width="560"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
   <Grid Margin="12">
     <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="Auto"/>
@@ -569,12 +613,21 @@ function Get-NvdApiStatus {
     <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,8,8,0">End date (UTC)</TextBlock>
     <DatePicker x:Name="EndDatePicker" Grid.Row="2" Grid.Column="1" Margin="0,8,0,0" />
 
-    <CheckBox x:Name="UseLastMod" Grid.Row="3" Grid.Column="1" Margin="0,8,0,0"
+    <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Margin="0,8,8,0">Quick Select</TextBlock>
+    <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="0,8,0,0">
+      <Button x:Name="Quick30" Content="30 days" Width="60" Height="24" Margin="0,0,4,0" FontSize="11"/>
+      <Button x:Name="Quick60" Content="60 days" Width="60" Height="24" Margin="0,0,4,0" FontSize="11"/>
+      <Button x:Name="Quick90" Content="90 days" Width="60" Height="24" Margin="0,0,4,0" FontSize="11"/>
+      <Button x:Name="Quick120" Content="120 days" Width="60" Height="24" Margin="0,0,4,0" FontSize="11"/>
+      <Button x:Name="QuickAll" Content="ALL" Width="60" Height="24" FontSize="11"/>
+    </StackPanel>
+
+    <CheckBox x:Name="UseLastMod" Grid.Row="4" Grid.Column="1" Margin="0,8,0,0"
               Content="Use last-modified dates (not publication)" />
-    <CheckBox x:Name="NoDateChk" Grid.Row="4" Grid.Column="1" Margin="0,8,0,0"
+    <CheckBox x:Name="NoDateChk" Grid.Row="5" Grid.Column="1" Margin="0,8,0,0"
               Content="Validate product only (no dates)" />
 
-    <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+    <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
       <Button x:Name="TestButton" Content="Test API" Width="80" Height="28" Margin="0,0,8,0"/>
       <Button x:Name="OkButton" Content="OK" Width="96" Height="28" Margin="0,0,8,0"/>
       <Button x:Name="CancelButton" Content="Cancel" Width="96" Height="28"/>
@@ -591,6 +644,11 @@ $startDatePicker  = $window.FindName('StartDatePicker')
 $endDatePicker    = $window.FindName('EndDatePicker')
 $useLastModCb     = $window.FindName('UseLastMod')
 $noDateChk        = $window.FindName('NoDateChk')
+$quick30Button    = $window.FindName('Quick30')
+$quick60Button    = $window.FindName('Quick60')
+$quick90Button    = $window.FindName('Quick90')
+$quick120Button   = $window.FindName('Quick120')
+$quickAllButton   = $window.FindName('QuickAll')
 $testButton       = $window.FindName('TestButton')
 $okButton         = $window.FindName('OkButton')
 $cancelButton     = $window.FindName('CancelButton')
@@ -598,9 +656,39 @@ $cancelButton     = $window.FindName('CancelButton')
 $Products | ForEach-Object { [void]$productCombo.Items.Add($_) }
 $productCombo.SelectedIndex = 0
 $endDatePicker.SelectedDate   = [DateTime]::UtcNow.Date
-$startDatePicker.SelectedDate = ([DateTime]::UtcNow.Date).AddDays(-7)
+$startDatePicker.SelectedDate = ([DateTime]::UtcNow.Date).AddDays(-30)
 $useLastModCb.IsChecked = $true
 $noDateChk.IsChecked    = $false   # dates enabled by default
+
+# -------------------- Quick Selector Buttons --------------------
+$quick30Button.Add_Click({
+  $endDatePicker.SelectedDate = [DateTime]::UtcNow.Date
+  $startDatePicker.SelectedDate = ([DateTime]::UtcNow.Date).AddDays(-30)
+  $noDateChk.IsChecked = $false
+})
+
+$quick60Button.Add_Click({
+  $endDatePicker.SelectedDate = [DateTime]::UtcNow.Date
+  $startDatePicker.SelectedDate = ([DateTime]::UtcNow.Date).AddDays(-60)
+  $noDateChk.IsChecked = $false
+})
+
+$quick90Button.Add_Click({
+  $endDatePicker.SelectedDate = [DateTime]::UtcNow.Date
+  $startDatePicker.SelectedDate = ([DateTime]::UtcNow.Date).AddDays(-90)
+  $noDateChk.IsChecked = $false
+})
+
+$quick120Button.Add_Click({
+  $endDatePicker.SelectedDate = [DateTime]::UtcNow.Date
+  $startDatePicker.SelectedDate = ([DateTime]::UtcNow.Date).AddDays(-120)
+  $noDateChk.IsChecked = $false
+})
+
+$quickAllButton.Add_Click({
+  $noDateChk.IsChecked = $true
+  Write-Host "ALL selected - will retrieve complete dataset without date filtering" -ForegroundColor Yellow
+})
 
 # -------------------- OK / Cancel --------------------
 $okButton.Add_Click({
@@ -729,7 +817,7 @@ $okButton.Add_Click({
     $userFriendlyMsg = if ($errorMsg -like "*HTTP error 404*") {
       "The NVD API returned a 404 error. This could indicate:`n`n" +
       "• The API endpoint is temporarily unavailable`n" +
-      "• The search parameters are invalid`n" +
+      "• The search parameters are invalid (date range > 120 days)`n" +
       "• Rate limiting or authentication issues`n`n" +
       "Technical details: $errorMsg"
     } elseif ($errorMsg -like "*timeout*") {
