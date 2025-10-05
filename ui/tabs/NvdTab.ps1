@@ -75,9 +75,19 @@ function Initialize-NvdTab {
     }
 
     # -------------------- Set Default Dates --------------------
+    # Defer date picker initialization until window is loaded to avoid WPF timing issues
+    $startPicker = $Controls.StartDatePicker
+    $endPicker = $Controls.EndDatePicker
 
-    $Controls.EndDatePicker.SelectedDate = [DateTime]::UtcNow.Date
-    $Controls.StartDatePicker.SelectedDate = ([DateTime]::UtcNow.Date).AddDays(-30)
+    $Window.Add_Loaded({
+            try {
+                $endPicker.SelectedDate = [DateTime]::UtcNow.Date
+                $startPicker.SelectedDate = ([DateTime]::UtcNow.Date).AddDays(-30)
+            } catch {
+                Write-Host "  Warning: Could not set default dates - $($_.Exception.Message)" -ForegroundColor Yellow
+            }
+        }.GetNewClosure())
+
     $Controls.UseLastModCb.IsChecked = $true
     $Controls.NoDateChk.IsChecked = $false
 
@@ -86,35 +96,37 @@ function Initialize-NvdTab {
     $script:NvdApiKey = Get-NvdApiKey -Root $RootDir
 
     # -------------------- Quick Date Selector Buttons --------------------
+    # Capture controls for use in closures
+    $noDateChk = $Controls.NoDateChk
 
     $Controls.Quick30Button.Add_Click({
-            $Controls.EndDatePicker.SelectedDate = [DateTime]::UtcNow.Date
-            $Controls.StartDatePicker.SelectedDate = ([DateTime]::UtcNow.Date).AddDays(-30)
-            $Controls.NoDateChk.IsChecked = $false
-        })
+            $endPicker.SelectedDate = [DateTime]::UtcNow.Date
+            $startPicker.SelectedDate = ([DateTime]::UtcNow.Date).AddDays(-30)
+            $noDateChk.IsChecked = $false
+        }.GetNewClosure())
 
     $Controls.Quick60Button.Add_Click({
-            $Controls.EndDatePicker.SelectedDate = [DateTime]::UtcNow.Date
-            $Controls.StartDatePicker.SelectedDate = ([DateTime]::UtcNow.Date).AddDays(-60)
-            $Controls.NoDateChk.IsChecked = $false
-        })
+            $endPicker.SelectedDate = [DateTime]::UtcNow.Date
+            $startPicker.SelectedDate = ([DateTime]::UtcNow.Date).AddDays(-60)
+            $noDateChk.IsChecked = $false
+        }.GetNewClosure())
 
     $Controls.Quick90Button.Add_Click({
-            $Controls.EndDatePicker.SelectedDate = [DateTime]::UtcNow.Date
-            $Controls.StartDatePicker.SelectedDate = ([DateTime]::UtcNow.Date).AddDays(-90)
-            $Controls.NoDateChk.IsChecked = $false
-        })
+            $endPicker.SelectedDate = [DateTime]::UtcNow.Date
+            $startPicker.SelectedDate = ([DateTime]::UtcNow.Date).AddDays(-90)
+            $noDateChk.IsChecked = $false
+        }.GetNewClosure())
 
     $Controls.Quick120Button.Add_Click({
-            $Controls.EndDatePicker.SelectedDate = [DateTime]::UtcNow.Date
-            $Controls.StartDatePicker.SelectedDate = ([DateTime]::UtcNow.Date).AddDays(-120)
-            $Controls.NoDateChk.IsChecked = $false
-        })
+            $endPicker.SelectedDate = [DateTime]::UtcNow.Date
+            $startPicker.SelectedDate = ([DateTime]::UtcNow.Date).AddDays(-120)
+            $noDateChk.IsChecked = $false
+        }.GetNewClosure())
 
     $Controls.QuickAllButton.Add_Click({
-            $Controls.NoDateChk.IsChecked = $true
+            $noDateChk.IsChecked = $true
             Write-Host "ALL selected - will retrieve complete dataset without date filtering" -ForegroundColor Yellow
-        })
+        }.GetNewClosure())
 
     # -------------------- Test API Button --------------------
 
@@ -312,9 +324,9 @@ function Initialize-NvdTab {
                 $Controls.ExportButton.Content = "Export CVEs"
                 $Controls.ExportButton.IsEnabled = $true
             }
-        })
+        })GetNewClosure())
 
-    Write-Host "  NVD tab initialized successfully" -ForegroundColor Green
+Write-Host "  NVD tab initialized successfully" -ForegroundColor Green
 }
 
 # Function is available for direct calling in script mode
