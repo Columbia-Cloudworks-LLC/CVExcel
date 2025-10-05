@@ -457,7 +457,13 @@ function Test-NvdApiConnectivity {
                 }
                 return $true
             } catch {
-                $status = $_.Exception.Response.StatusCode.Value__ 2>$null
+                $status = $null
+                try {
+                    $status = $_.Exception.Response.StatusCode.Value__
+                } catch {
+                    # Ignore errors when accessing status code
+                }
+
                 if ($status -eq 404) {
                     Write-Host "  API key returned 404 - likely invalid/expired. Falling back to public access." -ForegroundColor Yellow
                     $publicMode = $true

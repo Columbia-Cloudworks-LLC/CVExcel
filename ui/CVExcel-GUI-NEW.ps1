@@ -11,7 +11,7 @@
 .NOTES
     This is the main GUI entry point for the CVExcel project.
     Launched automatically by CVExcel.ps1 when run without parameters.
-    
+
     Tab-specific logic is modularized in ui/tabs/:
     - NvdTab.ps1 - NVD CVE Exporter functionality
     - AdvisoryTab.ps1 - Advisory Scraper functionality

@@ -9,38 +9,28 @@
 #>
 
 # Import required modules
-. "$PSScriptRoot\vendors\BaseVendor.ps1"
-. "$PSScriptRoot\vendors\GenericVendor.ps1"
-. "$PSScriptRoot\vendors\GitHubVendor.ps1"
-. "$PSScriptRoot\vendors\MicrosoftVendor.ps1"
-. "$PSScriptRoot\vendors\IBMVendor.ps1"
-. "$PSScriptRoot\vendors\ZDIVendor.ps1"
-. "$PSScriptRoot\vendors\VendorManager.ps1"
+. "$PSScriptRoot\..\common\Logging.ps1"
+. "$PSScriptRoot\..\common\WebFetcher.ps1"
+. "$PSScriptRoot\..\vendors\BaseVendor.ps1"
+. "$PSScriptRoot\..\vendors\GenericVendor.ps1"
+. "$PSScriptRoot\..\vendors\GitHubVendor.ps1"
+. "$PSScriptRoot\..\vendors\MicrosoftVendor.ps1"
+. "$PSScriptRoot\..\vendors\IBMVendor.ps1"
+. "$PSScriptRoot\..\vendors\ZDIVendor.ps1"
+. "$PSScriptRoot\..\vendors\VendorManager.ps1"
 . "$PSScriptRoot\PlaywrightWrapper.ps1"
 
 class ScrapingEngine {
     [string]$LogFile
     [object]$VendorManager
+    [object]$WebFetcher
     [hashtable]$DependencyStatus
-    [hashtable]$SessionCache
-    [hashtable]$RetryConfig
-    [hashtable]$RateLimits
 
     ScrapingEngine([string]$logFile, [hashtable]$dependencyStatus) {
         $this.LogFile = $logFile
         $this.DependencyStatus = $dependencyStatus
         $this.VendorManager = [VendorManager]::new()
-        $this.SessionCache = @{}
-        $this.RetryConfig = @{
-            MaxRetries = 3
-            BaseDelayMs = 1000
-            MaxDelayMs = 10000
-            JitterMs = 500
-        }
-        $this.RateLimits = @{
-            RequestsPerMinute = 30
-            LastRequestTime = @{}
-        }
+        $this.WebFetcher = [WebFetcher]::new($logFile)
     }
 
     # Main scraping method with intelligent fallback
@@ -50,9 +40,6 @@ class ScrapingEngine {
         }
 
         Write-Log -Message "Starting to scrape advisory URL: $url" -Level "INFO" -LogFile $this.LogFile
-
-        # Rate limiting
-        $this.ApplyRateLimit($url)
 
         # Determine best scraping method
         $method = $this.DetermineScrapingMethod($url)
@@ -123,9 +110,9 @@ class ScrapingEngine {
 
         # Define fallback chain
         $fallbackMap = @{
-            'GitHubAPI' = @('EnhancedHTTP')
-            'Playwright' = @('Selenium', 'EnhancedHTTP')
-            'Selenium' = @('EnhancedHTTP')
+            'GitHubAPI'    = @('EnhancedHTTP')
+            'Playwright'   = @('Selenium', 'EnhancedHTTP')
+            'Selenium'     = @('EnhancedHTTP')
             'EnhancedHTTP' = @('BasicHTTP')
         }
 
@@ -174,16 +161,16 @@ class ScrapingEngine {
             if ($result.Success) {
                 Write-Log -Message "Successfully extracted GitHub data via API" -Level "SUCCESS" -LogFile $this.LogFile
                 return @{
-                    Success = $true
-                    Url = $url
-                    Status = 'Success'
-                    Content = $result.Content
-                    DownloadLinks = $result.DownloadLinks -join ' | '
-                    ExtractedData = $result.ExtractedData
-                    Method = 'GitHubAPI'
-                    FetchTime = $totalTime.TotalSeconds
-                    TotalTime = $totalTime.TotalSeconds
-                    LinksFound = $result.DownloadLinks.Count
+                    Success        = $true
+                    Url            = $url
+                    Status         = 'Success'
+                    Content        = $result.Content
+                    DownloadLinks  = $result.DownloadLinks -join ' | '
+                    ExtractedData  = $result.ExtractedData
+                    Method         = 'GitHubAPI'
+                    FetchTime      = $totalTime.TotalSeconds
+                    TotalTime      = $totalTime.TotalSeconds
+                    LinksFound     = $result.DownloadLinks.Count
                     DataPartsFound = if ($result.ExtractedData) { ($result.ExtractedData -split '\|').Count } else { 0 }
                 }
             } else {
@@ -233,15 +220,15 @@ class ScrapingEngine {
                 }
 
                 return @{
-                    Success = $true
-                    Url = $url
-                    Status = 'Success'
-                    Content = $result.Content
-                    Method = 'Playwright'
-                    FetchTime = $totalTime.TotalSeconds
-                    TotalTime = $totalTime.TotalSeconds
+                    Success     = $true
+                    Url         = $url
+                    Status      = 'Success'
+                    Content     = $result.Content
+                    Method      = 'Playwright'
+                    FetchTime   = $totalTime.TotalSeconds
+                    TotalTime   = $totalTime.TotalSeconds
                     ContentSize = $contentSize
-                    Warning = if (-not $hasGoodContent) { 'Content may be incomplete' } else { $null }
+                    Warning     = if (-not $hasGoodContent) { 'Content may be incomplete' } else { $null }
                 }
             } else {
                 return $this.CreateErrorResult($url, "Playwright navigation failed: $($result.Error)")
@@ -264,149 +251,38 @@ class ScrapingEngine {
         return $this.CreateErrorResult($url, "Selenium scraping not implemented yet")
     }
 
-    # Enhanced HTTP scraping with retry logic and better headers
+    # Enhanced HTTP scraping with retry logic and better headers (using WebFetcher)
     [hashtable] ScrapeWithEnhancedHTTP([string]$url, [hashtable]$options) {
-        $maxRetries = $this.RetryConfig.MaxRetries
-        $attempt = 0
-        $lastException = $null
+        # Use WebFetcher which handles retry, rate limiting, and session management
+        $result = $this.WebFetcher.Fetch($url, $options)
 
-        while ($attempt -lt $maxRetries) {
-            $attempt++
-
-            try {
-                Write-Log -Message "Attempting enhanced HTTP fetch (attempt $attempt/$maxRetries): $url" -Level "DEBUG" -LogFile $this.LogFile
-
-                $startTime = Get-Date
-                $result = $this.InvokeEnhancedWebRequest($url, $options)
-                $fetchTime = (Get-Date) - $startTime
-
-                if ($result.Success) {
-                    Write-Log -Message "Successfully fetched page content (Size: $($result.Content.Length) bytes, Time: $($fetchTime.TotalSeconds)s)" -Level "SUCCESS" -LogFile $this.LogFile
-
-                    return @{
-                        Success = $true
-                        Url = $url
-                        Status = 'Success'
-                        Content = $result.Content
-                        Method = 'EnhancedHTTP'
-                        FetchTime = $fetchTime.TotalSeconds
-                        TotalTime = $fetchTime.TotalSeconds
-                        StatusCode = $result.StatusCode
-                        Session = $result.Session
-                    }
-                } else {
-                    $lastException = $result.Error
-                    Write-Log -Message "Enhanced HTTP attempt $attempt failed: $lastException" -Level "WARNING" -LogFile $this.LogFile
-                }
-            } catch {
-                $lastException = $_.Exception.Message
-                Write-Log -Message "Enhanced HTTP attempt $attempt exception: $lastException" -Level "ERROR" -LogFile $this.LogFile
+        if ($result.Success) {
+            # Ensure result has expected fields for ScrapingEngine
+            if (-not $result.ContainsKey('TotalTime')) {
+                $result.TotalTime = $result.FetchTime
             }
-
-            # Apply retry delay if not the last attempt
-            if ($attempt -lt $maxRetries) {
-                $delay = [Math]::Min(
-                    $this.RetryConfig.BaseDelayMs * [Math]::Pow(2, $attempt - 1),
-                    $this.RetryConfig.MaxDelayMs
-                )
-                $jitter = Get-Random -Minimum 0 -Maximum $this.RetryConfig.JitterMs
-                $totalDelay = $delay + $jitter
-
-                Write-Log -Message "Retrying in $totalDelay ms..." -Level "INFO" -LogFile $this.LogFile
-                Start-Sleep -Milliseconds $totalDelay
+            if (-not $result.ContainsKey('Status')) {
+                $result.Status = 'Success'
             }
         }
 
-        return $this.CreateErrorResult($url, "Enhanced HTTP failed after $maxRetries attempts. Last error: $lastException")
+        return $result
     }
 
-    # Basic HTTP scraping (fallback)
+    # Basic HTTP scraping (fallback using WebFetcher)
     [hashtable] ScrapeWithBasicHTTP([string]$url, [hashtable]$options) {
-        try {
-            $startTime = Get-Date
+        $result = $this.WebFetcher.FetchBasic($url)
 
-            $response = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
-            $fetchTime = (Get-Date) - $startTime
-
-            Write-Log -Message "Basic HTTP fetch successful (Size: $($response.Content.Length) bytes, Time: $($fetchTime.TotalSeconds)s)" -Level "SUCCESS" -LogFile $this.LogFile
-
-            return @{
-                Success = $true
-                Url = $url
-                Status = 'Success'
-                Content = $response.Content
-                Method = 'BasicHTTP'
-                FetchTime = $fetchTime.TotalSeconds
-                TotalTime = $fetchTime.TotalSeconds
-                StatusCode = $response.StatusCode
+        if ($result.Success) {
+            # Ensure result has expected fields
+            if (-not $result.ContainsKey('TotalTime')) {
+                $result.TotalTime = $result.FetchTime
             }
-        } catch {
-            return $this.CreateErrorResult($url, "Basic HTTP failed: $($_.Exception.Message)")
         }
+
+        return $result
     }
 
-    # Enhanced web request with better headers and session management
-    [hashtable] InvokeEnhancedWebRequest([string]$url, [hashtable]$options) {
-        # Get or create session for this domain
-        $domain = ([System.Uri]$url).Host
-        $session = if ($this.SessionCache.ContainsKey($domain)) { $this.SessionCache[$domain] } else { $null }
-
-        # Enhanced headers to mimic real browser and avoid bot detection
-        $headers = @{
-            'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            'Accept' = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'
-            'Accept-Language' = 'en-US,en;q=0.9'
-            'Accept-Encoding' = 'gzip, deflate, br'
-            'DNT' = '1'
-            'Connection' = 'keep-alive'
-            'Upgrade-Insecure-Requests' = '1'
-            'Sec-Fetch-Dest' = 'document'
-            'Sec-Fetch-Mode' = 'navigate'
-            'Sec-Fetch-Site' = 'none'
-            'Cache-Control' = 'max-age=0'
-        }
-
-        # Add referer for same domain
-        try {
-            $uri = [System.Uri]$url
-            $headers['Referer'] = "$($uri.Scheme)://$($uri.Host)/"
-        } catch {
-            # Skip if URL parsing fails
-        }
-
-        # Add small random delay to appear more human-like
-        $humanDelay = Get-Random -Minimum 500 -Maximum 1500
-        Start-Sleep -Milliseconds $humanDelay
-
-        $invokeParams = @{
-            Uri = $url
-            Headers = $headers
-            TimeoutSec = 30
-            UseBasicParsing = $true
-            ErrorAction = 'Stop'
-        }
-
-        # Use session if available
-        if ($session) {
-            $invokeParams['WebSession'] = $session
-        } else {
-            $invokeParams['SessionVariable'] = 'newSession'
-        }
-
-        $response = Invoke-WebRequest @invokeParams
-
-        # Store session for future use
-        if ($newSession) {
-            $this.SessionCache[$domain] = $newSession
-        }
-
-        return @{
-            Success = $true
-            Content = $response.Content
-            StatusCode = $response.StatusCode
-            Session = if ($session) { $session } elseif ($newSession) { $newSession } else { $null }
-        }
-    }
 
     # Apply vendor-specific post-processing
     [hashtable] ApplyVendorPostProcessing([string]$url, [hashtable]$result) {
@@ -452,38 +328,19 @@ class ScrapingEngine {
         return $result
     }
 
-    # Apply rate limiting
-    [void] ApplyRateLimit([string]$url) {
-        $domain = ([System.Uri]$url).Host
-        $now = Get-Date
-
-        if ($this.RateLimits.LastRequestTime.ContainsKey($domain)) {
-            $lastRequest = $this.RateLimits.LastRequestTime[$domain]
-            $timeSinceLastRequest = ($now - $lastRequest).TotalMilliseconds
-            $minInterval = 60000 / $this.RateLimits.RequestsPerMinute  # Convert to milliseconds
-
-            if ($timeSinceLastRequest -lt $minInterval) {
-                $delay = $minInterval - $timeSinceLastRequest
-                Write-Log -Message "Rate limiting: waiting $([Math]::Round($delay))ms for domain $domain" -Level "DEBUG" -LogFile $this.LogFile
-                Start-Sleep -Milliseconds $delay
-            }
-        }
-
-        $this.RateLimits.LastRequestTime[$domain] = $now
-    }
 
     # Create standardized error result
     [hashtable] CreateErrorResult([string]$url, [string]$errorMessage) {
         return @{
-            Success = $false
-            Url = $url
-            Status = 'Error'
-            DownloadLinks = ''
-            ExtractedData = "Error: $errorMessage"
-            Error = $errorMessage
-            FetchTime = 0
-            TotalTime = 0
-            LinksFound = 0
+            Success        = $false
+            Url            = $url
+            Status         = 'Error'
+            DownloadLinks  = ''
+            ExtractedData  = "Error: $errorMessage"
+            Error          = $errorMessage
+            FetchTime      = 0
+            TotalTime      = 0
+            LinksFound     = 0
             DataPartsFound = 0
         }
     }
@@ -494,8 +351,8 @@ class ScrapingEngine {
             # Close any remaining Playwright browsers
             Close-PlaywrightBrowser
 
-            # Clear session cache
-            $this.SessionCache.Clear()
+            # Cleanup WebFetcher resources
+            $this.WebFetcher.Cleanup()
 
             Write-Log -Message "ScrapingEngine cleanup completed" -Level "DEBUG" -LogFile $this.LogFile
         } catch {
@@ -504,5 +361,4 @@ class ScrapingEngine {
     }
 }
 
-# Export the class
-Export-ModuleMember -Type ScrapingEngine
+# Class is available for direct instantiation in script mode
