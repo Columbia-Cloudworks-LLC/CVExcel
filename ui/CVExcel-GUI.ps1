@@ -1639,10 +1639,11 @@ $closeButton.Add_Click({ $window.Close() })
 Write-Host "`n===============================================================================" -ForegroundColor Cyan
 Write-Host "                 CVExcel - Multi-Tool CVE Processing Suite" -ForegroundColor Cyan
 Write-Host "===============================================================================" -ForegroundColor Cyan
-Write-Host "  📊 NVD CVE Exporter - Query and export from NVD database" -ForegroundColor Cyan
-Write-Host "  🔍 Advisory Scraper - Extract patches and download links" -ForegroundColor Cyan
-Write-Host "  ℹ️ About - Project information and documentation" -ForegroundColor Cyan
-Write-Host "===============================================================================`n" -ForegroundColor Cyan
+Write-Host "  [NVD] NVD CVE Exporter - Query and export from NVD database" -ForegroundColor Cyan
+Write-Host "  [ADV] Advisory Scraper - Extract patches and download links" -ForegroundColor Cyan
+Write-Host "  [INFO] About - Project information and documentation" -ForegroundColor Cyan
+Write-Host "===============================================================================" -ForegroundColor Cyan
+Write-Host ""
 
 # Initialize Advisory Scraper tab
 Update-CsvList

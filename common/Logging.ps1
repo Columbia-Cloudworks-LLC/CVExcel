@@ -150,5 +150,5 @@ function Write-Log {
     Write-Host $logEntry -ForegroundColor $color
 }
 
-# Export functions for module usage
-Export-ModuleMember -Function Initialize-LogFile, Write-Log
+# Note: Functions are automatically available when dot-sourced
+# Export-ModuleMember is only needed when this file is imported as a module
