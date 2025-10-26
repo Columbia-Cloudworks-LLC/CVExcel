@@ -1,4 +1,5 @@
-# CVExcel - Two-Stage CVE Data Collection & Enrichment System
+# CVExcel - Two-Stage CVE Data Collection & Enrichment System
+
 
 [![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
 
@@ -9,6 +10,31 @@
 [![Status](https://img.shields.io/badge/status-production-brightgreen.svg)](https://github.com/your-username/CVExcel)
 
 ---
+
+## 🤖 AI Foreman Integration
+
+CVExcel includes **AI Foreman** - an automated code maintenance system that:
+
+- 🔍 **Automated Analysis** - Continuously analyzes code quality and security compliance
+- 🛠️ **Idempotent Development** - Ensures consistent, repeatable results through Cursor chat integration
+- 🔒 **NIST Security Compliance** - Automatically enforces NIST SP 800-53 security guidelines
+- 🧪 **Automated Testing** - All changes are tested before application
+- 📝 **Comprehensive Logging** - Maintains detailed audit trails
+
+### Quick Start with AI Foreman
+
+```powershell
+# Submit a request through Cursor chat integration
+.\cursor-chat-integration.ps1 -Type "add_feature" -Description "Add support for Oracle security advisories"
+
+# Run AI Foreman manually
+.\ai-foreman.ps1 -VerboseLog
+
+# Check AI Foreman status
+Get-Content .ai\state\fp.json | ConvertFrom-Json
+```
+
+**📖 [Complete AI Foreman Integration Guide](docs/AI_FOREMAN_INTEGRATION.md)**
 
 ## 🚀 Quick Start
 
@@ -161,8 +187,17 @@ Enhanced with vendor-specific data:
 CVExcel/
 ├── CVExcel.ps1                 # Stage 1: NIST CVE Collection
 ├── CVExpand.ps1                # Stage 2: Vendor Data Enrichment
+├── ai-foreman.ps1              # AI Foreman automation
+├── cursor-chat-integration.ps1 # Cursor chat integration
 ├── Install-Playwright.ps1      # Playwright setup
 ├── README.md                   # This file
+│
+├── .ai/                        # AI Foreman configuration
+│   ├── spec-pack.yaml         # Spec Kit configuration
+│   ├── rules.yaml             # AI Foreman rules
+│   ├── checks/                # Analysis scripts
+│   ├── planners/              # Planning scripts
+│   └── state/                 # State and results
 │
 ├── ui/                         # GUI modules
 │   ├── CVExpand-GUI.ps1       # Stage 2 GUI application
@@ -182,7 +217,9 @@ CVExcel/
 ├── tests/                      # Test scripts
 ├── docs/                       # Documentation
 ├── out/                        # Output directory (CSV files)
-└── config/                     # Configuration files
+├── config/                     # Configuration files
+├── .cursorrules                # Cursor workspace rules
+└── cursor-workspace.json       # Cursor workspace configuration
 ```
 
 ---
@@ -193,6 +230,7 @@ CVExcel/
 
 ### Essential Guides
 - **[Quick Start Guide](docs/QUICK_START.md)** - Get up and running
+- **[AI Foreman Integration](docs/AI_FOREMAN_INTEGRATION.md)** ⭐ **NEW** - Automated code maintenance with Cursor chat
 - **[MSRC API Solution](docs/MSRC_API_SOLUTION.md)** ⭐ **RECOMMENDED** - Microsoft CVE extraction
 - **[Vendor Module Guide](docs/VENDOR_MODULARIZATION_SUMMARY.md)** - Adding custom vendors
 - **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Production deployment
@@ -286,48 +324,59 @@ Extensible vendor-specific extraction modules:
 
 ### Example 1: Complete Two-Stage Workflow
 ```powershell
-# Stage 1: Collect CVE data from NIST
+# Stage 1: Collect CVE data from NIST
+
 
 [![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
 .\CVExcel.ps1
-# Select product: "microsoft windows"
+# Select product: "microsoft windows"
+
 
 [![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
-# Select date range: Last 30 days
+# Select date range: Last 30 days
+
 
 [![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
-# Output: microsoft_windows_20251004_155424.csv
+# Output: microsoft_windows_20251004_155424.csv
+
 
 [![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
 
-# Stage 2: Enrich with vendor data
+# Stage 2: Enrich with vendor data
+
 
 [![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
 .\ui\CVExpand-GUI.ps1
-# Load the CSV from Stage 1
+# Load the CSV from Stage 1
+
 
 [![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
-# Click "Start Scraping"
+# Click "Start Scraping"
+
 
 [![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
-# Output: Enhanced CSV with download links and patches
+# Output: Enhanced CSV with download links and patches
+
 
 [![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
 ```
 
 ### Example 2: Command Line Processing
 ```powershell
-# Stage 1: NIST data collection
+# Stage 1: NIST data collection
+
 
 [![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
 .\CVExcel.ps1  # Use GUI to select product and dates
 
-# Stage 2: Vendor enrichment
+# Stage 2: Vendor enrichment
+
 
 [![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
 .\CVExpand.ps1 -Url "https://msrc.microsoft.com/update-guide/vulnerability/CVE-2024-21302"
 
-# Check the results
+# Check the results
+
 
 [![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
 Import-Csv ".\out\microsoft_windows_enhanced.csv" | Select-Object CVE, DownloadLinks
@@ -335,12 +384,14 @@ Import-Csv ".\out\microsoft_windows_enhanced.csv" | Select-Object CVE, DownloadL
 
 ### Example 3: Direct NIST API Usage
 ```powershell
-# Test NIST API connectivity
+# Test NIST API connectivity
+
 
 [![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
 .\CVExcel.ps1  # Click "Test API" button in GUI
 
-# Or use PowerShell modules directly
+# Or use PowerShell modules directly
+
 
 [![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
 Import-Module MsrcSecurityUpdates
@@ -434,5 +485,3 @@ If you find this tool useful, please consider giving it a star! ⭐
 ---
 
 **Built with ❤️ and PowerShell**
-
-

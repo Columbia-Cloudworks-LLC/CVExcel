@@ -1,0 +1,10 @@
+{
+  "processed": false,
+  "description": "Test integration",
+  "type": "add_feature",
+  "timestamp": "2025-10-26T16:12:14Z",
+  "files": [],
+  "priority": "normal",
+  "source": "cursor_chat",
+  "status": "pending"
+}

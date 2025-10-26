@@ -1,0 +1,122 @@
+{
+  "name": "CVExcel - CVE Data Collection & Enrichment",
+  "description": "Two-stage CVE data collection and enrichment system with AI Foreman integration",
+  "version": "1.1.0",
+  "author": "CVExcel Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/CVExcel.git"
+  },
+  "keywords": [
+    "cve",
+    "vulnerability",
+    "security",
+    "powershell",
+    "playwright",
+    "nist",
+    "msrc",
+    "ai-foreman",
+    "cursor-chat"
+  ],
+  "aiForeman": {
+    "enabled": true,
+    "version": "1.1.0",
+    "configPath": ".ai/spec-pack.yaml",
+    "rulesPath": ".ai/rules.yaml",
+    "statePath": ".ai/state/",
+    "integration": {
+      "cursorChat": true,
+      "cursorRules": ".cursorrules",
+      "integrationScript": "cursor-chat-integration.ps1"
+    }
+  },
+  "project": {
+    "type": "powershell",
+    "mainScripts": [
+      "CVExcel.ps1",
+      "CVExpand.ps1",
+      "ai-foreman.ps1"
+    ],
+    "guiScripts": [
+      "ui/CVExpand-GUI.ps1"
+    ],
+    "vendorModules": [
+      "vendors/MicrosoftVendor.ps1",
+      "vendors/GitHubVendor.ps1",
+      "vendors/IBMVendor.ps1",
+      "vendors/ZDIVendor.ps1",
+      "vendors/GenericVendor.ps1"
+    ],
+    "testScripts": [
+      "tests/run-all-tests.ps1",
+      "tests/test-vendor-integration.ps1",
+      "tests/test-playwright-functions.ps1"
+    ]
+  },
+  "development": {
+    "workflow": "ai-foreman",
+    "idempotent": true,
+    "automatedTesting": true,
+    "securityCompliance": "NIST",
+    "codeQuality": "PSScriptAnalyzer",
+    "documentation": "comprehensive"
+  },
+  "features": {
+    "stage1": {
+      "name": "NIST CVE Collection",
+      "script": "CVExcel.ps1",
+      "description": "Collect CVE data from NIST NVD API"
+    },
+    "stage2": {
+      "name": "Vendor Data Enrichment",
+      "script": "CVExpand.ps1",
+      "description": "Enrich CVE data with vendor patch information"
+    },
+    "gui": {
+      "name": "GUI Interface",
+      "script": "ui/CVExpand-GUI.ps1",
+      "description": "Graphical user interface for Stage 2"
+    },
+    "aiForeman": {
+      "name": "AI Foreman",
+      "script": "ai-foreman.ps1",
+      "description": "Automated code maintenance and improvement"
+    }
+  },
+  "cursor": {
+    "rules": ".cursorrules",
+    "aiForemanIntegration": true,
+    "idempotentDevelopment": true,
+    "chatIntegration": {
+      "enabled": true,
+      "script": "cursor-chat-integration.ps1",
+      "requestTypes": [
+        "add_feature",
+        "fix_bug",
+        "improve_scraping",
+        "security_fix",
+        "documentation",
+        "vendor_module"
+      ]
+    }
+  },
+  "security": {
+    "guidelines": "NIST SP 800-53",
+    "compliance": "required",
+    "audit": "automated",
+    "testing": "comprehensive"
+  },
+  "testing": {
+    "framework": "Pester",
+    "automation": "Playwright",
+    "coverage": "comprehensive",
+    "security": "automated"
+  },
+  "documentation": {
+    "index": "docs/INDEX.md",
+    "quickStart": "docs/QUICK_START.md",
+    "apiReference": "docs/API_REFERENCE.md",
+    "deployment": "docs/DEPLOYMENT_GUIDE.md"
+  }
+}

@@ -1,0 +1,20 @@
+name: AI Foreman
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "0 12 * * 1-5"   # 12:00 UTC weekdays
+jobs:
+  run:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PowerShell 7
+        uses: PowerShell/PowerShell@v1
+        with: { version: "7.4.x" }
+      - name: Run AI Foreman
+        shell: pwsh
+        run: ./ai-foreman.ps1
+      - name: Upload SARIF (stub)
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with: { sarif_file: .ai/last-run.sarif }
