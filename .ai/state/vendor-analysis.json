@@ -1,0 +1,108 @@
+{
+  "recommendations": [
+    "Common issue: Missing input validation (affects 6 modules)",
+    "Common issue: Potential security issue with credential handling (affects 5 modules)",
+    "Common issue: Missing logging statements (affects 3 modules)",
+    "Common issue: Missing try-catch error handling (affects 3 modules)",
+    "Common issue: Missing rate limiting for web requests (affects 2 modules)"
+  ],
+  "total_modules": 6,
+  "timestamp": "2025-10-26T16:11:51Z",
+  "overall_score": 44.44,
+  "modules": [
+    {
+      "module": "BaseVendor",
+      "file": "C:\\Users\\viral\\OneDrive\\Desktop\\CVExcel\\CVExcel\\vendors\\BaseVendor.ps1",
+      "improvements": [
+        "Add parameter validation and input sanitization"
+      ],
+      "issues": [
+        "Missing input validation"
+      ],
+      "score": 83.33
+    },
+    {
+      "module": "GenericVendor",
+      "file": "C:\\Users\\viral\\OneDrive\\Desktop\\CVExcel\\CVExcel\\vendors\\GenericVendor.ps1",
+      "improvements": [
+        "Add comprehensive error handling with try-catch blocks",
+        "Add verbose logging for debugging and monitoring",
+        "Add parameter validation and input sanitization",
+        "Use SecureString for sensitive data handling"
+      ],
+      "issues": [
+        "Missing try-catch error handling",
+        "Missing logging statements",
+        "Missing input validation",
+        "Potential security issue with credential handling"
+      ],
+      "score": 33.33
+    },
+    {
+      "module": "GitHubVendor",
+      "file": "C:\\Users\\viral\\OneDrive\\Desktop\\CVExcel\\CVExcel\\vendors\\GitHubVendor.ps1",
+      "improvements": [
+        "Add parameter validation and input sanitization",
+        "Use SecureString for sensitive data handling",
+        "Add rate limiting and retry logic for API calls"
+      ],
+      "issues": [
+        "Missing input validation",
+        "Potential security issue with credential handling",
+        "Missing rate limiting for web requests"
+      ],
+      "score": 50.0
+    },
+    {
+      "module": "IBMVendor",
+      "file": "C:\\Users\\viral\\OneDrive\\Desktop\\CVExcel\\CVExcel\\vendors\\IBMVendor.ps1",
+      "improvements": [
+        "Add comprehensive error handling with try-catch blocks",
+        "Add verbose logging for debugging and monitoring",
+        "Add parameter validation and input sanitization",
+        "Use SecureString for sensitive data handling"
+      ],
+      "issues": [
+        "Missing try-catch error handling",
+        "Missing logging statements",
+        "Missing input validation",
+        "Potential security issue with credential handling"
+      ],
+      "score": 33.33
+    },
+    {
+      "module": "MicrosoftVendor",
+      "file": "C:\\Users\\viral\\OneDrive\\Desktop\\CVExcel\\CVExcel\\vendors\\MicrosoftVendor.ps1",
+      "improvements": [
+        "Add parameter validation and input sanitization",
+        "Use SecureString for sensitive data handling",
+        "Add rate limiting and retry logic for API calls",
+        "Consider Playwright for JavaScript-heavy pages"
+      ],
+      "issues": [
+        "Missing input validation",
+        "Potential security issue with credential handling",
+        "Missing rate limiting for web requests",
+        "Using basic web requests instead of Playwright"
+      ],
+      "score": 33.33
+    },
+    {
+      "module": "ZDIVendor",
+      "file": "C:\\Users\\viral\\OneDrive\\Desktop\\CVExcel\\CVExcel\\vendors\\ZDIVendor.ps1",
+      "improvements": [
+        "Add comprehensive error handling with try-catch blocks",
+        "Add verbose logging for debugging and monitoring",
+        "Add parameter validation and input sanitization",
+        "Use SecureString for sensitive data handling"
+      ],
+      "issues": [
+        "Missing try-catch error handling",
+        "Missing logging statements",
+        "Missing input validation",
+        "Potential security issue with credential handling"
+      ],
+      "score": 33.33
+    }
+  ]
+}

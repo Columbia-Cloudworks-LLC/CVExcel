@@ -1,0 +1,111 @@
+# CVExcel Cursor Rules
+# AI Foreman Integration for Idempotent Development
+
+## Project Context
+This is a CVE (Common Vulnerabilities and Exposures) data scraping project that:
+- Scrapes vendor advisory pages for vulnerability information
+- Uses PowerShell for automation and data processing
+- Implements Playwright for JavaScript-heavy web scraping
+- Follows NIST security guidelines for secure coding practices
+- Uses modular vendor-specific scraping classes
+
+## AI Foreman Integration
+- AI Foreman is enabled and configured in `.ai/` directory
+- Spec Kit configuration in `.ai/spec-pack.yaml` and `.ai/rules.yaml`
+- AI Foreman runs checks, planners, and applies changes idempotently
+- Changes are applied via git branches with automatic testing
+- Fingerprint-based change detection prevents unnecessary operations
+
+## Core Principles
+1. **Security First** - All code must follow NIST security guidelines
+2. **PowerShell Best Practices** - Follow Microsoft's recommended patterns
+3. **Playwright Excellence** - Use modern testing and automation practices
+4. **Maintainability** - Write clean, documented, and modular code
+5. **Error Handling** - Implement comprehensive error handling and logging
+6. **Idempotent Development** - Use AI Foreman for consistent, repeatable changes
+
+## Project Structure
+- `vendors/` - Modular vendor-specific scraping classes
+- `tests/` - Automated testing suite using Pester and Playwright
+- `out/` - Output directory for scraped data (CSV format)
+- `docs/` - Project documentation and guides
+- `config/` - Configuration files and settings
+- `.ai/` - AI Foreman configuration and automation
+
+## Key Technologies
+- **PowerShell** - Primary scripting language with advanced function patterns
+- **Playwright** - Web automation and testing framework
+- **PSScriptAnalyzer** - Code quality and security analysis
+- **Pester** - PowerShell testing framework
+- **AI Foreman** - Automated code maintenance and improvement
+
+## Security Requirements
+- Follow NIST SP 800-53 security controls
+- Implement proper input validation and sanitization
+- Use secure coding practices for all web scraping operations
+- Maintain audit trails and comprehensive logging
+- Handle sensitive data according to security guidelines
+
+## Development Workflow
+1. **AI Foreman Integration** - Use Cursor chat to request changes
+2. **Idempotent Operations** - AI Foreman ensures consistent results
+3. **Automated Testing** - All changes are tested before application
+4. **Git Integration** - Changes are applied via feature branches
+5. **Documentation** - Maintain comprehensive documentation
+
+## Code Quality Standards
+- Use PSScriptAnalyzer for code analysis
+- Follow PowerShell best practices and style guidelines
+- Implement comprehensive error handling
+- Write clear, documented code with proper comments
+- Use modular design patterns for maintainability
+
+## Testing Requirements
+- Write tests for all new functionality
+- Use Pester for PowerShell unit testing
+- Use Playwright for web automation testing
+- Maintain test coverage for critical paths
+- Test vendor-specific scraping modules
+
+## AI Foreman Commands
+- Run AI Foreman: `.\ai-foreman.ps1`
+- Check AI Foreman status: Review `.ai/state/fp.json`
+- View AI Foreman logs: Check `docs/AI_FOREMAN_LOG.md`
+- Manual AI Foreman run: `.\ai-foreman.ps1 -VerboseLog`
+
+## Cursor Chat Integration
+When requesting changes through Cursor chat:
+1. Specify the exact change needed
+2. AI Foreman will analyze and plan the change
+3. Changes will be applied idempotently
+4. All changes are tested before application
+5. Results are logged and tracked
+
+## File Patterns
+- PowerShell scripts: `*.ps1`, `*.psm1`
+- Configuration: `*.yaml`, `*.json`
+- Documentation: `*.md`
+- Test files: `test-*.ps1`, `TEST_*.ps1`
+- Vendor modules: `vendors/*Vendor.ps1`
+
+## Common Tasks
+- Adding new vendor modules
+- Improving scraping accuracy
+- Enhancing error handling
+- Updating documentation
+- Optimizing performance
+- Security improvements
+
+## Error Handling
+- Always use try-catch blocks
+- Log errors with context
+- Provide meaningful error messages
+- Implement retry logic for network operations
+- Validate inputs before processing
+
+## Performance Considerations
+- Use parallel processing where appropriate
+- Implement rate limiting for API calls
+- Cache frequently accessed data
+- Optimize web scraping operations
+- Monitor memory usage for large datasets

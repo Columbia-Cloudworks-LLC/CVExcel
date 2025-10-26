@@ -1,0 +1,10 @@
+{
+  "source": "cursor_chat",
+  "description": "Test AI Foreman integration",
+  "files": [],
+  "type": "add_feature",
+  "priority": "normal",
+  "processed": false,
+  "status": "pending",
+  "timestamp": "2025-10-26T16:11:34Z"
+}
