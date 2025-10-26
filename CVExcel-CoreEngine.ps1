@@ -3,27 +3,19 @@
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [ValidateSet("inventory", "scan", "assess", "report", "status", "gui")]
     [string]$Action = "status",
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [string[]]$Targets = @(),
 
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [string]$ConfigFile = "config.json",
 
-    [Parameter(Mandatory=$false)]
-    [switch]$Verbose,
-
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [switch]$Help
 )
-
-# Set verbose preference
-if ($Verbose) {
-    $VerbosePreference = "Continue"
-}
 
 # Help function
 function Show-Help {
@@ -284,10 +276,9 @@ try {
     }
 
     Write-Host "`nCVExcel Core Engine operation completed successfully!" -ForegroundColor Green
-}
-catch {
+} catch {
     Write-Error "CVExcel Core Engine operation failed: $($_.Exception.Message)"
-    if ($Verbose) {
+    if ($PSCmdlet.MyInvocation.BoundParameters["Verbose"].IsPresent) {
         Write-Error $_.ScriptStackTrace
     }
     exit 1
