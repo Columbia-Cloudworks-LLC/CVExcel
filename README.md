@@ -1,4 +1,6 @@
-# CVExcel - Two-Stage CVE Data Collection & Enrichment System
+# CVExcel - Two-Stage CVE Data Collection & Enrichment System
+
+[![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
 
 **Stage 1: Collect CVE data from NIST • Stage 2: Enrich with vendor patch information**
 
@@ -284,37 +286,63 @@ Extensible vendor-specific extraction modules:
 
 ### Example 1: Complete Two-Stage Workflow
 ```powershell
-# Stage 1: Collect CVE data from NIST
-.\CVExcel.ps1
-# Select product: "microsoft windows"
-# Select date range: Last 30 days
-# Output: microsoft_windows_20251004_155424.csv
+# Stage 1: Collect CVE data from NIST
 
-# Stage 2: Enrich with vendor data
+[![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
+.\CVExcel.ps1
+# Select product: "microsoft windows"
+
+[![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
+# Select date range: Last 30 days
+
+[![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
+# Output: microsoft_windows_20251004_155424.csv
+
+[![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
+
+# Stage 2: Enrich with vendor data
+
+[![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
 .\ui\CVExpand-GUI.ps1
-# Load the CSV from Stage 1
-# Click "Start Scraping"
-# Output: Enhanced CSV with download links and patches
+# Load the CSV from Stage 1
+
+[![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
+# Click "Start Scraping"
+
+[![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
+# Output: Enhanced CSV with download links and patches
+
+[![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
 ```
 
 ### Example 2: Command Line Processing
 ```powershell
-# Stage 1: NIST data collection
+# Stage 1: NIST data collection
+
+[![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
 .\CVExcel.ps1  # Use GUI to select product and dates
 
-# Stage 2: Vendor enrichment
+# Stage 2: Vendor enrichment
+
+[![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
 .\CVExpand.ps1 -Url "https://msrc.microsoft.com/update-guide/vulnerability/CVE-2024-21302"
 
-# Check the results
+# Check the results
+
+[![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
 Import-Csv ".\out\microsoft_windows_enhanced.csv" | Select-Object CVE, DownloadLinks
 ```
 
 ### Example 3: Direct NIST API Usage
 ```powershell
-# Test NIST API connectivity
+# Test NIST API connectivity
+
+[![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
 .\CVExcel.ps1  # Click "Test API" button in GUI
 
-# Or use PowerShell modules directly
+# Or use PowerShell modules directly
+
+[![AI Foreman](https://img.shields.io/badge/AI%20Foreman-enabled-blue)](#ai-foreman)
 Import-Module MsrcSecurityUpdates
 $update = Get-MsrcSecurityUpdate -Vulnerability CVE-2024-21302
 $cvrf = Get-MsrcCvrfDocument -ID $update.value[0].ID
@@ -406,4 +434,5 @@ If you find this tool useful, please consider giving it a star! ⭐
 ---
 
 **Built with ❤️ and PowerShell**
+
 
