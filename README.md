@@ -485,5 +485,3 @@ If you find this tool useful, please consider giving it a star! ⭐
 ---
 
 **Built with ❤️ and PowerShell**
-
-

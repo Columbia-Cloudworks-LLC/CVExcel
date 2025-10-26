@@ -16,7 +16,7 @@ function Analyze-VendorModule {
         [string]$FilePath,
         [string]$ModuleName
     )
-    
+
     $analysis = @{
         module = $ModuleName
         file = $FilePath
@@ -24,29 +24,29 @@ function Analyze-VendorModule {
         improvements = @()
         score = 0
     }
-    
+
     try {
         $content = Get-Content $FilePath -Raw
         $lines = $content -split "`n"
-        
+
         # Check for error handling
         if ($content -notmatch "try\s*\{") {
             $analysis.issues += "Missing try-catch error handling"
             $analysis.improvements += "Add comprehensive error handling with try-catch blocks"
         }
-        
+
         # Check for logging
         if ($content -notmatch "Write-Verbose|Write-Debug|Write-Log") {
             $analysis.issues += "Missing logging statements"
             $analysis.improvements += "Add verbose logging for debugging and monitoring"
         }
-        
+
         # Check for input validation
         if ($content -notmatch "ValidateNotNullOrEmpty|ValidatePattern|ValidateRange") {
             $analysis.issues += "Missing input validation"
             $analysis.improvements += "Add parameter validation and input sanitization"
         }
-        
+
         # Check for security practices
         if ($content -notmatch "SecureString|ConvertTo-SecureString") {
             if ($content -match "password|secret|key|token") {
@@ -54,7 +54,7 @@ function Analyze-VendorModule {
                 $analysis.improvements += "Use SecureString for sensitive data handling"
             }
         }
-        
+
         # Check for rate limiting
         if ($content -notmatch "Start-Sleep|Wait-|rate.*limit") {
             if ($content -match "Invoke-WebRequest|Invoke-RestMethod") {
@@ -62,20 +62,20 @@ function Analyze-VendorModule {
                 $analysis.improvements += "Add rate limiting and retry logic for API calls"
             }
         }
-        
+
         # Check for Playwright integration
         if ($content -match "Invoke-WebRequest" -and $content -notmatch "Playwright") {
             $analysis.issues += "Using basic web requests instead of Playwright"
             $analysis.improvements += "Consider Playwright for JavaScript-heavy pages"
         }
-        
+
         # Calculate improvement score
         $totalChecks = 6
         $passedChecks = $totalChecks - $analysis.issues.Count
         $analysis.score = [math]::Round(($passedChecks / $totalChecks) * 100, 2)
-        
+
         Write-Log "Analyzed $ModuleName - Score: $($analysis.score)% - Issues: $($analysis.issues.Count)"
-        
+
         return $analysis
     }
     catch {
@@ -88,7 +88,7 @@ function Analyze-VendorModule {
 function Get-VendorModules {
     $vendorFiles = Get-ChildItem "vendors/*Vendor.ps1" -ErrorAction SilentlyContinue
     $modules = @()
-    
+
     foreach ($file in $vendorFiles) {
         $moduleName = $file.BaseName
         $modules += @{
@@ -98,7 +98,7 @@ function Get-VendorModules {
             lastModified = $file.LastWriteTime
         }
     }
-    
+
     return $modules
 }
 

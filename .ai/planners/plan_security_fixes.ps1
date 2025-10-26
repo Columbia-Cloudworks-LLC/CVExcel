@@ -4,7 +4,7 @@
 param(
     [Parameter(Mandatory=$true)]
     [string]$Audit,
-    
+
     [string]$OutputPath = ".ai/state/security-plan.json"
 )
 
@@ -16,12 +16,12 @@ function Write-Log {
 
 function Get-AuditResults {
     param([string]$AuditPath)
-    
+
     if (-not (Test-Path $AuditPath)) {
         Write-Log "Audit file not found: $AuditPath"
         return $null
     }
-    
+
     try {
         $audit = Get-Content $AuditPath | ConvertFrom-Json
         Write-Log "Processing security audit for $($audit.total_files) files"
@@ -35,7 +35,7 @@ function Get-AuditResults {
 
 function Plan-SecurityFixes {
     param($Audit)
-    
+
     $plan = @{
         type = "security_compliance"
         description = "Implement NIST security guidelines compliance"
@@ -44,29 +44,29 @@ function Plan-SecurityFixes {
         tests_to_run = @()
         priority = "high"
     }
-    
+
     # Process critical and high severity issues first
     $criticalFiles = $Audit.files | Where-Object { $_.severity -eq "critical" }
     $highFiles = $Audit.files | Where-Object { $_.severity -eq "high" }
-    
+
     foreach ($file in $criticalFiles) {
         $plan.files_to_modify += $file.path
         $plan.changes += "CRITICAL: Fix security issues in $($file.file)"
-        
+
         foreach ($issue in $file.issues) {
             $plan.changes += "  - $issue"
         }
     }
-    
+
     foreach ($file in $highFiles) {
         $plan.files_to_modify += $file.path
         $plan.changes += "HIGH: Address security issues in $($file.file)"
-        
+
         foreach ($issue in $file.issues) {
             $plan.changes += "  - $issue"
         }
     }
-    
+
     # Add general security improvements
     if ($Audit.overall_compliance_score -lt 80) {
         $plan.changes += "Implement comprehensive input validation across all modules"
@@ -77,10 +77,10 @@ function Plan-SecurityFixes {
         $plan.changes += "Add path traversal prevention for file operations"
         $plan.changes += "Implement XSS prevention in output operations"
     }
-    
+
     # Add specific fixes based on common issues
     $allIssues = $Audit.files | ForEach-Object { $_.issues } | Group-Object | Sort-Object Count -Descending
-    
+
     foreach ($issue in $allIssues) {
         if ($issue.Count -gt 2) {
             switch ($issue.Name) {
@@ -111,21 +111,21 @@ function Plan-SecurityFixes {
             }
         }
     }
-    
+
     # Add security-focused tests
     $plan.tests_to_run += "pwsh -Command 'Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error'"
     $plan.tests_to_run += "pwsh ./tests/test-security-compliance.ps1"
     $plan.tests_to_run += "pwsh ./tests/run-all-tests.ps1"
-    
+
     # Add PSScriptAnalyzer security rules
     $plan.tests_to_run += "pwsh -Command 'Invoke-ScriptAnalyzer -Path . -Recurse -IncludeRule @(\"PSAvoidUsingInvokeExpression\", \"PSAvoidUsingPlainTextForPassword\", \"PSAvoidUsingUsernameAndPasswordParams\")'"
-    
+
     return $plan
 }
 
 function Generate-SecurityDiff {
     param($Plan)
-    
+
     $diff = @()
     $diff += "diff --git a/SECURITY_FIXES_PLAN b/SECURITY_FIXES_PLAN"
     $diff += "new file mode 100644"
@@ -133,11 +133,11 @@ function Generate-SecurityDiff {
     $diff += "--- /dev/null"
     $diff += "+++ b/SECURITY_FIXES_PLAN"
     $diff += "@@ -0,0 +1,$($Plan.changes.Count) @@"
-    
+
     foreach ($change in $Plan.changes) {
         $diff += "+$change"
     }
-    
+
     $diff += ""
     $diff += "diff --git a/SECURITY_TESTS b/SECURITY_TESTS"
     $diff += "new file mode 100644"
@@ -145,11 +145,11 @@ function Generate-SecurityDiff {
     $diff += "--- /dev/null"
     $diff += "+++ b/SECURITY_TESTS"
     $diff += "@@ -0,0 +1,$($Plan.tests_to_run.Count) @@"
-    
+
     foreach ($test in $Plan.tests_to_run) {
         $diff += "+$test"
     }
-    
+
     return $diff -join "`n"
 }
 

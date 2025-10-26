@@ -251,7 +251,7 @@ pwsh -Command 'Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error'
    ```powershell
    # Check request file
    Get-Content .ai/state/cursor-request.json
-   
+
    # Check integration script
    .\cursor-chat-integration.ps1 -Type "add_feature" -Description "Test request"
    ```
@@ -260,7 +260,7 @@ pwsh -Command 'Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error'
    ```powershell
    # Run tests manually
    pwsh ./tests/run-all-tests.ps1
-   
+
    # Check specific test
    pwsh ./tests/test-vendor-integration.ps1
    ```

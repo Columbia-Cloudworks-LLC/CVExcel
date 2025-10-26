@@ -4,7 +4,7 @@
 param(
     [Parameter(Mandatory=$true)]
     [string]$Analysis,
-    
+
     [string]$OutputPath = ".ai/state/vendor-plan.json"
 )
 
@@ -16,12 +16,12 @@ function Write-Log {
 
 function Get-AnalysisResults {
     param([string]$AnalysisPath)
-    
+
     if (-not (Test-Path $AnalysisPath)) {
         Write-Log "Analysis file not found: $AnalysisPath"
         return $null
     }
-    
+
     try {
         $analysis = Get-Content $AnalysisPath | ConvertFrom-Json
         Write-Log "Processing analysis for $($analysis.total_modules) modules"
@@ -35,7 +35,7 @@ function Get-AnalysisResults {
 
 function Plan-VendorModuleImprovements {
     param($Analysis)
-    
+
     $plan = @{
         type = "vendor_module_improvements"
         description = "Improve vendor module code quality and functionality"
@@ -44,18 +44,18 @@ function Plan-VendorModuleImprovements {
         tests_to_run = @()
         priority = "normal"
     }
-    
+
     # Process each module's analysis
     foreach ($module in $Analysis.modules) {
         if ($module.score -lt 70) {
             $plan.files_to_modify += $module.file
-            
+
             foreach ($improvement in $module.improvements) {
                 $plan.changes += "Improve $($module.module): $improvement"
             }
         }
     }
-    
+
     # Add common improvements based on analysis
     if ($Analysis.overall_score -lt 80) {
         $plan.changes += "Add comprehensive error handling to all vendor modules"
@@ -64,10 +64,10 @@ function Plan-VendorModuleImprovements {
         $plan.changes += "Improve security practices in vendor modules"
         $plan.changes += "Add rate limiting and retry logic for web requests"
     }
-    
+
     # Add specific improvements based on common issues
     $commonIssues = $Analysis.modules | ForEach-Object { $_.issues } | Group-Object | Sort-Object Count -Descending
-    
+
     foreach ($issue in $commonIssues) {
         if ($issue.Count -gt 1) {
             switch ($issue.Name) {
@@ -89,18 +89,18 @@ function Plan-VendorModuleImprovements {
             }
         }
     }
-    
+
     # Add tests
     $plan.tests_to_run += "pwsh ./tests/test-vendor-integration.ps1"
     $plan.tests_to_run += "pwsh ./tests/test-playwright-functions.ps1"
     $plan.tests_to_run += "pwsh -Command 'Get-ChildItem vendors/*.ps1 | ForEach-Object { Write-Host \"Testing $_\"; & $_ -Test }'"
-    
+
     return $plan
 }
 
 function Generate-VendorModuleDiff {
     param($Plan)
-    
+
     $diff = @()
     $diff += "diff --git a/VENDOR_IMPROVEMENTS_PLAN b/VENDOR_IMPROVEMENTS_PLAN"
     $diff += "new file mode 100644"
@@ -108,11 +108,11 @@ function Generate-VendorModuleDiff {
     $diff += "--- /dev/null"
     $diff += "+++ b/VENDOR_IMPROVEMENTS_PLAN"
     $diff += "@@ -0,0 +1,$($Plan.changes.Count) @@"
-    
+
     foreach ($change in $Plan.changes) {
         $diff += "+$change"
     }
-    
+
     $diff += ""
     $diff += "diff --git a/VENDOR_TESTS b/VENDOR_TESTS"
     $diff += "new file mode 100644"
@@ -120,11 +120,11 @@ function Generate-VendorModuleDiff {
     $diff += "--- /dev/null"
     $diff += "+++ b/VENDOR_TESTS"
     $diff += "@@ -0,0 +1,$($Plan.tests_to_run.Count) @@"
-    
+
     foreach ($test in $Plan.tests_to_run) {
         $diff += "+$test"
     }
-    
+
     return $diff -join "`n"
 }
 

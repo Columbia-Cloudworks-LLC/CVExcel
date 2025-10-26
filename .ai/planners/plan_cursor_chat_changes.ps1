@@ -4,7 +4,7 @@
 param(
     [Parameter(Mandatory=$true)]
     [string]$Request,
-    
+
     [string]$OutputPath = ".ai/state/cursor-plan.json"
 )
 
@@ -16,12 +16,12 @@ function Write-Log {
 
 function Get-RequestDetails {
     param([string]$RequestPath)
-    
+
     if (-not (Test-Path $RequestPath)) {
         Write-Log "Request file not found: $RequestPath"
         return $null
     }
-    
+
     try {
         $request = Get-Content $RequestPath | ConvertFrom-Json
         Write-Log "Processing request: $($request.type) - $($request.description)"
@@ -35,7 +35,7 @@ function Get-RequestDetails {
 
 function Plan-CodeChanges {
     param($Request)
-    
+
     $plan = @{
         type = "code_changes"
         description = $Request.description
@@ -44,7 +44,7 @@ function Plan-CodeChanges {
         tests_to_run = @()
         priority = $Request.priority
     }
-    
+
     switch ($Request.type.ToLower()) {
         "add_feature" {
             $plan.changes += "Add new feature: $($Request.description)"
@@ -77,13 +77,13 @@ function Plan-CodeChanges {
             $plan.tests_to_run += "pwsh ./tests/run-all-tests.ps1"
         }
     }
-    
+
     return $plan
 }
 
 function Plan-VendorModuleChanges {
     param($Request)
-    
+
     $plan = @{
         type = "vendor_module_improvements"
         description = $Request.description
@@ -92,37 +92,37 @@ function Plan-VendorModuleChanges {
         tests_to_run = @()
         priority = $Request.priority
     }
-    
+
     # Analyze vendor modules for improvements
     $vendorFiles = Get-ChildItem "vendors/*Vendor.ps1" -ErrorAction SilentlyContinue
-    
+
     foreach ($file in $vendorFiles) {
         $content = Get-Content $file.FullName -Raw
         $plan.files_to_modify += $file.FullName
-        
+
         # Check for common improvement opportunities
         if ($content -notmatch "try\s*\{") {
             $plan.changes += "Add error handling to $($file.Name)"
         }
-        
+
         if ($content -notmatch "Write-Verbose|Write-Debug") {
             $plan.changes += "Add logging to $($file.Name)"
         }
-        
+
         if ($content -notmatch "ValidateNotNullOrEmpty") {
             $plan.changes += "Add input validation to $($file.Name)"
         }
     }
-    
+
     $plan.tests_to_run += "pwsh ./tests/test-vendor-integration.ps1"
     $plan.tests_to_run += "pwsh ./tests/test-playwright-functions.ps1"
-    
+
     return $plan
 }
 
 function Plan-SecurityImprovements {
     param($Request)
-    
+
     $plan = @{
         type = "security_compliance"
         description = $Request.description
@@ -131,23 +131,23 @@ function Plan-SecurityImprovements {
         tests_to_run = @()
         priority = $Request.priority
     }
-    
+
     # Security-focused improvements
     $plan.changes += "Implement NIST security guidelines compliance"
     $plan.changes += "Add input validation and sanitization"
     $plan.changes += "Improve error handling without information disclosure"
     $plan.changes += "Add comprehensive logging for audit trails"
-    
+
     $plan.files_to_modify += "vendors/", "ui/", "tests/"
     $plan.tests_to_run += "pwsh -Command 'Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error'"
     $plan.tests_to_run += "pwsh ./tests/test-security-compliance.ps1"
-    
+
     return $plan
 }
 
 function Generate-UnifiedDiff {
     param($Plan)
-    
+
     $diff = @()
     $diff += "diff --git a/AI_FOREMAN_PLAN b/AI_FOREMAN_PLAN"
     $diff += "new file mode 100644"
@@ -155,11 +155,11 @@ function Generate-UnifiedDiff {
     $diff += "--- /dev/null"
     $diff += "+++ b/AI_FOREMAN_PLAN"
     $diff += "@@ -0,0 +1,$($Plan.changes.Count) @@"
-    
+
     foreach ($change in $Plan.changes) {
         $diff += "+$change"
     }
-    
+
     $diff += ""
     $diff += "diff --git a/AI_FOREMAN_TESTS b/AI_FOREMAN_TESTS"
     $diff += "new file mode 100644"
@@ -167,11 +167,11 @@ function Generate-UnifiedDiff {
     $diff += "--- /dev/null"
     $diff += "+++ b/AI_FOREMAN_TESTS"
     $diff += "@@ -0,0 +1,$($Plan.tests_to_run.Count) @@"
-    
+
     foreach ($test in $Plan.tests_to_run) {
         $diff += "+$test"
     }
-    
+
     return $diff -join "`n"
 }
 

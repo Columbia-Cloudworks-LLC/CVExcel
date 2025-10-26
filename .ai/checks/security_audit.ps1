@@ -16,7 +16,7 @@ function Test-SecurityCompliance {
         [string]$FilePath,
         [string]$FileName
     )
-    
+
     $audit = @{
         file = $FileName
         path = $FilePath
@@ -24,69 +24,69 @@ function Test-SecurityCompliance {
         severity = "low"
         compliance_score = 0
     }
-    
+
     try {
         $content = Get-Content $FilePath -Raw
-        
+
         # Check for input validation (NIST SP 800-53 SI-10)
         if ($content -notmatch "ValidateNotNullOrEmpty|ValidatePattern|ValidateRange") {
             if ($content -match "param\s*\(") {
                 $audit.issues += "Missing input validation on parameters"
             }
         }
-        
+
         # Check for secure coding practices (NIST SP 800-53 SA-15)
         if ($content -match "Invoke-Expression|iex\s|\.\s*\\") {
             $audit.issues += "Potential code injection vulnerability"
             $audit.severity = "high"
         }
-        
+
         # Check for credential handling (NIST SP 800-53 IA-5)
         if ($content -match "password.*=.*[\"'].*[\"']|secret.*=.*[\"'].*[\"']") {
             $audit.issues += "Hardcoded credentials detected"
             $audit.severity = "high"
         }
-        
+
         # Check for error handling (NIST SP 800-53 SI-11)
         if ($content -notmatch "try\s*\{.*catch\s*\{") {
             if ($content -match "Invoke-WebRequest|Invoke-RestMethod|Start-Process") {
                 $audit.issues += "Missing error handling for external operations"
             }
         }
-        
+
         # Check for logging (NIST SP 800-53 AU-2)
         if ($content -notmatch "Write-Verbose|Write-Debug|Write-Log|Write-EventLog") {
             if ($content -match "Invoke-WebRequest|Invoke-RestMethod|Start-Process") {
                 $audit.issues += "Missing audit logging for security-relevant operations"
             }
         }
-        
+
         # Check for secure random number generation (NIST SP 800-53 SC-12)
         if ($content -match "Get-Random" -and $content -notmatch "Get-Random.*-Count") {
             $audit.issues += "Insecure random number generation"
         }
-        
+
         # Check for SQL injection prevention (NIST SP 800-53 SI-10)
         if ($content -match "Invoke-Sqlcmd" -and $content -notmatch "parameterized|prepared") {
             $audit.issues += "Potential SQL injection vulnerability"
             $audit.severity = "high"
         }
-        
+
         # Check for path traversal prevention (NIST SP 800-53 SI-10)
         if ($content -match "Get-Content|Set-Content|Remove-Item" -and $content -notmatch "Resolve-Path|Test-Path") {
             $audit.issues += "Potential path traversal vulnerability"
         }
-        
+
         # Check for XSS prevention (NIST SP 800-53 SI-10)
         if ($content -match "Write-Output.*\$" -and $content -notmatch "Escape|Encode") {
             $audit.issues += "Potential XSS vulnerability in output"
         }
-        
+
         # Calculate compliance score
         $totalChecks = 9
         $passedChecks = $totalChecks - $audit.issues.Count
         $audit.compliance_score = [math]::Round(($passedChecks / $totalChecks) * 100, 2)
-        
+
         # Adjust severity based on score
         if ($audit.compliance_score -lt 50) {
             $audit.severity = "critical"
@@ -95,9 +95,9 @@ function Test-SecurityCompliance {
         } elseif ($audit.compliance_score -lt 85) {
             $audit.severity = "medium"
         }
-        
+
         Write-Log "Audited $FileName - Score: $($audit.compliance_score)% - Severity: $($audit.severity)"
-        
+
         return $audit
     }
     catch {
@@ -111,17 +111,17 @@ function Test-SecurityCompliance {
 function Get-SecurityFiles {
     $filePatterns = @("*.ps1", "*.psm1", "*.cs", "*.ts")
     $files = @()
-    
+
     foreach ($pattern in $filePatterns) {
         $foundFiles = Get-ChildItem -Path . -Filter $pattern -Recurse -ErrorAction SilentlyContinue
         $files += $foundFiles
     }
-    
+
     # Filter out test files and documentation
-    $files = $files | Where-Object { 
-        $_.FullName -notmatch "\\tests\\|\\docs\\|\\\.ai\\|\\\.git\\" 
+    $files = $files | Where-Object {
+        $_.FullName -notmatch "\\tests\\|\\docs\\|\\\.ai\\|\\\.git\\"
     }
-    
+
     return $files
 }
 
@@ -135,7 +135,7 @@ function Invoke-ScriptAnalyzerSecurity {
     catch {
         Write-Log "PSScriptAnalyzer not available: $($_.Exception.Message)"
     }
-    
+
     return @()
 }
 
@@ -165,7 +165,7 @@ foreach ($file in $securityFiles) {
     $audit = Test-SecurityCompliance -FilePath $file.FullName -FileName $file.Name
     $auditResults.files += $audit
     $totalScore += $audit.compliance_score
-    
+
     switch ($audit.severity) {
         "critical" { $criticalCount++ }
         "high" { $highCount++ }

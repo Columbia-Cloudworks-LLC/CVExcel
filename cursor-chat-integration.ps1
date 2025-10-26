@@ -4,10 +4,10 @@
 param(
     [Parameter(Mandatory=$true)]
     [string]$Type,
-    
+
     [Parameter(Mandatory=$true)]
     [string]$Description,
-    
+
     [string[]]$Files = @(),
     [string]$Priority = "normal",
     [switch]$VerboseLog
@@ -28,7 +28,7 @@ function Submit-CursorChatRequest {
         [string[]]$Files,
         [string]$Priority
     )
-    
+
     $request = @{
         timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
         type = $Type
@@ -39,25 +39,25 @@ function Submit-CursorChatRequest {
         processed = $false
         source = "cursor_chat"
     }
-    
+
     $requestPath = ".ai/state/cursor-request.json"
     $request | ConvertTo-Json -Depth 3 | Set-Content $requestPath
-    
+
     Write-Log "Cursor chat request submitted: $Type - $Description"
     Write-Log "Request saved to: $requestPath"
-    
+
     return $requestPath
 }
 
 function Invoke-AIForeman {
     param([string]$RequestPath)
-    
+
     Write-Log "Running AI Foreman to process Cursor chat request..."
-    
+
     try {
         # Run AI Foreman
         $result = & ".\ai-foreman.ps1" -VerboseLog:$VerboseLog
-        
+
         if ($LASTEXITCODE -eq 0) {
             Write-Log "AI Foreman completed successfully"
             return $true
@@ -75,14 +75,14 @@ function Invoke-AIForeman {
 function Get-AIForemanStatus {
     $fingerprintPath = ".ai/state/fp.json"
     $logPath = "docs/AI_FOREMAN_LOG.md"
-    
+
     $status = @{
         fingerprint_exists = Test-Path $fingerprintPath
         log_exists = Test-Path $logPath
         last_run = $null
         fingerprint = $null
     }
-    
+
     if ($status.fingerprint_exists) {
         try {
             $fingerprint = Get-Content $fingerprintPath | ConvertFrom-Json
@@ -93,7 +93,7 @@ function Get-AIForemanStatus {
             Write-Log "Error reading fingerprint: $($_.Exception.Message)"
         }
     }
-    
+
     return $status
 }
 
