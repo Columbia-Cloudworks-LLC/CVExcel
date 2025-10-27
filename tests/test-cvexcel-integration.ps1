@@ -8,8 +8,7 @@ Write-Host "`nTest 1: Checking main script files..." -ForegroundColor Yellow
 $mainScripts = @(
     @{ Path = "..\CVExcel.ps1"; Name = "CVExcel Main Script" },
     @{ Path = "..\CVExpand.ps1"; Name = "CVExpand Script" },
-    @{ Path = "..\products.txt"; Name = "Products Configuration" },
-    @{ Path = "..\config.json"; Name = "Configuration File" }
+    @{ Path = "..\products.txt"; Name = "Products Configuration" }
 )
 
 $missingFiles = @()
