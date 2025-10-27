@@ -1,6 +1,6 @@
 {
   "name": "CVExcel - CVE Data Collection & Enrichment",
-  "description": "Two-stage CVE data collection and enrichment system with AI Foreman integration",
+  "description": "Two-stage CVE data collection and enrichment system",
   "version": "1.1.0",
   "author": "CVExcel Team",
   "license": "MIT",
@@ -69,17 +69,6 @@
     "rules": ".cursorrules",
     "nativeAI": true,
     "idempotentDevelopment": true,
-    "chatIntegration": {
-      "enabled": true,
-      "requestTypes": [
-        "add_feature",
-        "fix_bug",
-        "improve_scraping",
-        "security_fix",
-        "documentation",
-        "vendor_module"
-      ]
-    }
   },
   "security": {
     "guidelines": "NIST SP 800-53",

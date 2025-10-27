@@ -173,17 +173,16 @@ The Spec Kit works seamlessly with AI Foreman:
 ## Next Steps
 
 1. **Review the Spec Kit** - Familiarize yourself with project specifications
-2. **Check AI Foreman** - Run `.\ai-foreman.ps1` to see Spec Kit in action
-3. **Follow Standards** - Use Spec Kit when adding new features
-4. **Update as Needed** - Modify Spec Kit as project evolves
+2. **Follow Standards** - Use Spec Kit when adding new features
+3. **Update as Needed** - Modify Spec Kit as project evolves
 
 ## References
 
 - [Spec Kit File](../spec-kit.yaml)
-- [AI Foreman Integration Guide](AI_FOREMAN_INTEGRATION.md)
+- [Cursor Native Development](CURSOR_NATIVE_DEVELOPMENT.md)
 - [Project Index](INDEX.md)
 - [README](../README.md)
 
 ---
 
-**Questions?** Check the [AI Foreman Integration Guide](AI_FOREMAN_INTEGRATION.md) or review the Spec Kit directly.
+**Questions?** Review the Spec Kit directly or check the [Cursor Native Development Guide](CURSOR_NATIVE_DEVELOPMENT.md).

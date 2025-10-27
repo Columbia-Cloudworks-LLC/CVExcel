@@ -3,7 +3,7 @@
 
 version: "1.1.0"
 name: "CVExcel - CVE Data Collection & Enrichment"
-description: "Two-stage CVE data collection and enrichment system with AI Foreman integration"
+description: "Two-stage CVE data collection and enrichment system"
 
 metadata:
   author: "CVExcel Team"
@@ -94,12 +94,6 @@ tech_stack:
       purpose: "CVE data collection"
       authentication: "API Key (optional but recommended)"
 
-  ai_integration:
-    - name: "AI Foreman"
-      version: "1.1.0"
-      enabled: true
-      config: ".ai/spec-pack.yaml"
-      rules: ".ai/rules.yaml"
 
 # Code Standards
 code_standards:
@@ -168,25 +162,13 @@ project_structure:
     core_scripts:
       - "CVExcel.ps1 (Stage 1 - CVE Collection)"
       - "CVExpand.ps1 (Stage 2 - Vendor Enrichment)"
-      - "CVExcel-CoreEngine.ps1 (Core functionality)"
-      - "ai-foreman.ps1 (AI Foreman automation)"
-      - "cursor-chat-integration.ps1 (Cursor integration)"
 
     modules:
       - "vendors/ (Vendor-specific scraping modules)"
-      - "core-engine/ (Core engine modules)"
 
     configuration:
-      - "config.json (Configuration file)"
       - ".cursorrules (Cursor workspace rules)"
       - "cursor-workspace.json (Workspace metadata)"
-
-    ai_foreman:
-      - ".ai/spec-pack.yaml (AI Foreman spec pack)"
-      - ".ai/rules.yaml (AI Foreman rules)"
-      - ".ai/checks/ (Analysis scripts)"
-      - ".ai/planners/ (Planning scripts)"
-      - ".ai/state/ (State and results)"
 
     documentation:
       - "docs/ (Comprehensive documentation)"
@@ -347,21 +329,6 @@ ai_foreman:
     - "Vendor module improvements"
     - "Cursor chat integration"
 
-  automated_rules:
-    - "docs-sync-api"
-    - "dead-links"
-    - "comment-accuracy-vs-code"
-    - "cursor-chat-integration"
-    - "vendor-module-improvements"
-    - "security-compliance"
-
-  workflow:
-    1. "User submits request through Cursor chat"
-    2. "AI Foreman analyzes codebase"
-    3. "AI Foreman plans improvements"
-    4. "AI Foreman applies changes idempotently"
-    5. "All tests are run automatically"
-    6. "User reviews and approves changes"
 
 # Deployment
 deployment:
@@ -392,7 +359,7 @@ security:
 
   audit:
     frequency: "Automated with each commit"
-    tools: ["PSScriptAnalyzer", "AI Foreman security audit"]
+    tools: ["PSScriptAnalyzer"]
 
   practices:
     - "Input validation"

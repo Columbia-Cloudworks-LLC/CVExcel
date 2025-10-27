@@ -24,7 +24,7 @@ The following PowerShell scripts are **deprecated** and should **NOT** be used:
 - ❌ `cursor-chat-integration.ps1` - Cursor integration wrapper
 - ❌ `.ai/` directory - AI Foreman configuration and state
 
-These files are now in `.gitignore` and should not be tracked in version control.
+These files have been **deleted** from the repository.
 
 ## New Development Workflow
 
@@ -96,8 +96,9 @@ These files guide Cursor's AI behavior instead of PowerShell scripts.
 - [x] Updated `cursor-workspace.json` to reflect Cursor-native workflow
 - [x] Added `.ai/` to `.gitignore`
 - [x] Created this migration guide
-- [ ] Update team documentation
-- [ ] Remove AI Foreman scripts from active use
+- [x] Deleted AI Foreman scripts (ai-foreman.ps1, cursor-chat-integration.ps1, Init-AIForeman.ps1)
+- [x] Removed AI Foreman documentation (AI_FOREMAN_INTEGRATION.md, AI_FOREMAN_LOG.md)
+- [x] Updated README.md and spec-kit.yaml to remove AI Foreman references
 
 ## Key Principles
 
@@ -171,7 +172,7 @@ A: Yes, Cursor's native AI provides all the same capabilities through its chat i
 A: Use git to commit and review changes. Cursor shows diffs before applying changes.
 
 **Q: What about the .ai/ directory?**
-A: It's deprecated and ignored by git. You can delete it if desired.
+A: It's been deleted. AI development should only live in `.cursor` and `.spec` directories.
 
 ## Conclusion
 

@@ -1,6 +1,0 @@
-# Prompt: dead_links v1.0.0
-Given a JSON array of broken links with files/lines, produce a unified diff
-that fixes or removes the links with the least invasive change. If a link
-is important but the target is truly gone, add a short footnote "(reference archived)"
-and point to the Wayback snapshot if available.
-If zero fixes are meaningful, output: NOOP
