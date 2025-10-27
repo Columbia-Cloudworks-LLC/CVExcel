@@ -16,28 +16,13 @@
     "playwright",
     "nist",
     "msrc",
-    "ai-foreman",
-    "cursor-chat"
+    "cursor"
   ],
-  "aiForeman": {
-    "enabled": true,
-    "version": "1.1.0",
-    "configPath": ".ai/spec-pack.yaml",
-    "rulesPath": ".ai/rules.yaml",
-    "specKit": "spec-kit.yaml",
-    "statePath": ".ai/state/",
-    "integration": {
-      "cursorChat": true,
-      "cursorRules": ".cursorrules",
-      "integrationScript": "cursor-chat-integration.ps1"
-    }
-  },
   "project": {
     "type": "powershell",
     "mainScripts": [
       "CVExcel.ps1",
-      "CVExpand.ps1",
-      "ai-foreman.ps1"
+      "CVExpand.ps1"
     ],
     "guiScripts": [
       "ui/CVExpand-GUI.ps1"
@@ -56,7 +41,7 @@
     ]
   },
   "development": {
-    "workflow": "ai-foreman",
+    "workflow": "cursor-native",
     "idempotent": true,
     "automatedTesting": true,
     "securityCompliance": "NIST",
@@ -79,19 +64,13 @@
       "script": "ui/CVExpand-GUI.ps1",
       "description": "Graphical user interface for Stage 2"
     },
-    "aiForeman": {
-      "name": "AI Foreman",
-      "script": "ai-foreman.ps1",
-      "description": "Automated code maintenance and improvement"
-    }
   },
   "cursor": {
     "rules": ".cursorrules",
-    "aiForemanIntegration": true,
+    "nativeAI": true,
     "idempotentDevelopment": true,
     "chatIntegration": {
       "enabled": true,
-      "script": "cursor-chat-integration.ps1",
       "requestTypes": [
         "add_feature",
         "fix_bug",

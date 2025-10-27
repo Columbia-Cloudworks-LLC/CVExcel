@@ -1,0 +1,53 @@
+# Spec Kit Configuration for CVExcel
+# This enables Spec-Driven Development (SDD) workflow in Cursor IDE
+
+name: "CVExcel - CVE Data Collection & Enrichment"
+version: "1.1.0"
+type: "powershell"
+
+# Project specifications source
+specs: ".spec/specs"
+plans: ".spec/plans"
+tasks: ".spec/tasks"
+snippets: ".spec/snippets"
+
+# Reference to existing project specifications
+project_specs: "spec-kit.yaml"
+
+# AI integration
+ai:
+  provider: "cursor"
+  model: "gpt-4o"
+  temperature: 0.1
+
+# Code templates (for PowerShel
+l project
+templates:
+  powershell_script: |
+    <#
+    .SYNOPSIS
+    {title}
+
+    .DESCRIPTION
+    {description}
+
+    .PARAMETER Parameter
+    {parameters}
+
+    .EXAMPLE
+    {example}
+
+    #>
+    [CmdletBinding()]
+    param(
+        # Add parameters here
+    )
+
+    # Implementation
+    {content}
+
+# Integration with existing AI Foreman
+ai_foreman:
+  enabled: true
+  config_path: ".ai/spec-pack.yaml"
+  rules_path: ".ai/rules.yaml"

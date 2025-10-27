@@ -15,6 +15,8 @@
 - **[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)** - High-level project overview
 - **[API_REFERENCE.md](API_REFERENCE.md)** - API and function reference
 - **[spec-kit.yaml](../spec-kit.yaml)** - Complete project specifications (Spec Kit)
+- **[SPEC_KIT_USAGE.md](SPEC_KIT_USAGE.md)** ⭐ **NEW** - Spec-Driven Development (SDD) workflow guide
+- **[CURSOR_NATIVE_DEVELOPMENT.md](CURSOR_NATIVE_DEVELOPMENT.md)** ⭐ **NEW** - Cursor-native AI development guide
 
 ### Implementation Guides
 - **[MSRC_API_SOLUTION.md](MSRC_API_SOLUTION.md)** ⭐ **LATEST** - Official Microsoft Security Updates API integration (RECOMMENDED)
@@ -55,9 +57,17 @@
 2. [API_REFERENCE.md](API_REFERENCE.md) - Available functions
 3. [REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md) - Code structure
 
+### "I want to develop with AI"
+1. **[CURSOR_NATIVE_DEVELOPMENT.md](CURSOR_NATIVE_DEVELOPMENT.md)** ⭐ - Use Cursor's native AI for development
+
 ---
 
 ## 🔄 Recent Changes
+
+### October 27, 2025 - Cursor Native AI Migration ⭐
+- **Migrated:** From AI Foreman PowerShell scripts to Cursor native AI
+- **Status:** Complete - All AI-driven development now through Cursor chat
+- **Docs:** [CURSOR_NATIVE_DEVELOPMENT.md](CURSOR_NATIVE_DEVELOPMENT.md)
 
 ### October 26, 2025 - Spec Kit Added ⭐
 - **Added:** Comprehensive project specifications (spec-kit.yaml)
