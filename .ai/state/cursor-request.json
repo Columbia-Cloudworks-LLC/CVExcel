@@ -1,10 +1,10 @@
 {
-  "processed": false,
-  "description": "Test integration",
-  "type": "add_feature",
-  "timestamp": "2025-10-26T16:12:14Z",
-  "files": [],
-  "priority": "normal",
+  "status": "pending",
+  "timestamp": "2025-10-27T01:53:24Z",
   "source": "cursor_chat",
-  "status": "pending"
+  "files": [],
+  "processed": false,
+  "description": "Add support for Oracle security advisories",
+  "type": "add_feature",
+  "priority": "normal"
 }

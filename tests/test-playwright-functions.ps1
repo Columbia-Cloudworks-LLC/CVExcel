@@ -4,7 +4,12 @@
 #>
 
 # Import the wrapper
-$wrapperPath = Join-Path $PSScriptRoot "PlaywrightWrapper.ps1"
+$wrapperPath = Join-Path $PSScriptRoot "..\ui\PlaywrightWrapper.ps1"
+if (-not (Test-Path $wrapperPath)) {
+    Write-Host "✗ PlaywrightWrapper.ps1 not found at $wrapperPath" -ForegroundColor Red
+    Write-Host "  Please ensure the UI directory contains PlaywrightWrapper.ps1" -ForegroundColor Yellow
+    exit 1
+}
 . $wrapperPath
 
 Write-Host "`n=== Playwright Function-Based Test ===" -ForegroundColor Cyan
@@ -63,7 +68,11 @@ if ($navResult.Success) {
 
 # Test 5: Take screenshot
 Write-Host "`n[5/5] Taking screenshot..." -ForegroundColor Yellow
-$screenshotPath = Join-Path $PSScriptRoot "out\playwright_test_screenshot.png"
+$outDir = Join-Path $PSScriptRoot "..\out"
+if (-not (Test-Path $outDir)) {
+    New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+}
+$screenshotPath = Join-Path $outDir "playwright_test_screenshot.png"
 $screenshotResult = Save-PlaywrightScreenshot -OutputPath $screenshotPath -Verbose
 if ($screenshotResult -and (Test-Path $screenshotPath)) {
     Write-Host "  ✓ Screenshot saved: $screenshotPath" -ForegroundColor Green

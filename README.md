@@ -36,48 +36,140 @@ Get-Content .ai\state\fp.json | ConvertFrom-Json
 
 **📖 [Complete AI Foreman Integration Guide](docs/AI_FOREMAN_INTEGRATION.md)**
 
+### Spec Kit
+
+This project includes a comprehensive **Spec Kit** (`spec-kit.yaml`) that defines:
+
+- **Architecture** - Two-stage CVE data collection pipeline
+- **Tech Stack** - PowerShell 7.x, Playwright, Pester, PSScriptAnalyzer
+- **Code Standards** - PowerShell best practices and NIST security compliance
+- **Vendor Modules** - Interface specifications and requirements
+- **Testing Requirements** - Pester framework with 80% coverage target
+- **Documentation Standards** - XML comments and comprehensive docs
+- **AI Foreman Integration** - Automated code maintenance workflow
+
+The Spec Kit serves as the single source of truth for project specifications, standards, and requirements.
+
+**📋 [View Spec Kit](spec-kit.yaml)**
+
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **PowerShell 7.x** or higher
-- **Windows 10/11** or Windows Server 2016+
-- **Internet connection** for API access
 
-### Installation
+**Required:**
+- **PowerShell 7.x** or higher (check with `$PSVersionTable.PSVersion`)
+- **Windows 10/11** or Windows Server 2016+
+- **Internet connection** for API access and web scraping
+- **Administrator privileges** (for Playwright installation)
+
+**Optional but Recommended:**
+- **NIST NVD API Key** (get free key at [https://nvd.nist.gov/developers/request-an-api-key](https://nvd.nist.gov/developers/request-an-api-key))
+  - Without API key: 5 requests per 30 seconds
+  - With API key: 50 requests per 30 seconds (10x faster)
+
+### Installation Steps
 
 1. **Clone or download this repository**
-
-2. **Install the Microsoft Security Updates API module** (required for MSRC data):
    ```powershell
-   Install-Module -Name MsrcSecurityUpdates -Scope CurrentUser -Force
+   # Navigate to project directory
+   cd CVExcel
    ```
 
-3. **Optional: Install Playwright** for JavaScript-heavy sites:
+2. **Set PowerShell execution policy** (required for script execution)
+   ```powershell
+   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+   ```
+
+3. **Install required PowerShell modules**
+   ```powershell
+   # Install Microsoft Security Updates API module (required for MSRC data)
+   Install-Module -Name MsrcSecurityUpdates -Scope CurrentUser -Force
+
+   # Verify installation
+   Get-Module -ListAvailable MsrcSecurityUpdates
+   ```
+
+4. **Optional: Install Playwright** (for JavaScript-heavy vendor sites)
    ```powershell
    .\Install-Playwright.ps1
    ```
 
-### Usage
-
-**Complete Workflow** (Two-Stage Process):
-
-1. **Stage 1: Collect CVE Data from NIST**
+5. **Optional: Add NVD API Key** for faster data collection
    ```powershell
-   .\CVExcel.ps1
-   ```
-   - Select product and date range
-   - Downloads CVE data from NIST NVD API
-   - Outputs basic CSV with CVE information
+   # Create API key file
+   "your-api-key-here" | Out-File -FilePath nvd.api.key -NoNewline
 
-2. **Stage 2: Enrich with Vendor Data**
-   ```powershell
-   .\CVExpand.ps1
-   # OR for GUI mode:
-   .\ui\CVExpand-GUI.ps1
+   # OR set environment variable
+   $env:NVD_API_KEY = "your-api-key-here"
    ```
-   - Load CSV from Stage 1
-   - Scrapes vendor websites for patch information
-   - Outputs enhanced CSV with download links and patches
+
+### Running the Scripts
+
+**Two-Stage Workflow:**
+
+#### Stage 1: Collect CVE Data from NIST
+
+```powershell
+.\CVExcel.ps1
+```
+
+**Interactive GUI Steps:**
+1. Select product from dropdown (or type custom keyword)
+2. Choose date range (Start Date and End Date in UTC)
+3. Select search method:
+   - ✅ **Use last-modified dates** - Searches by when CVE was last modified
+   - ✅ **Validate product only (no dates)** - Tests product search without date filtering
+4. Click "Query NVD API" button
+5. Wait for data collection (progress shown in GUI)
+6. Review results and click "Export CSV"
+
+**Expected Output:** CSV file saved to `out\` directory, e.g., `microsoft_windows_20251026_172736.csv`
+
+**Sample CSV Output (Stage 1):**
+```csv
+ProductFilter,CVE,Published,LastModified,CVSS_BaseScore,Severity,Summary,RefUrls,Vendor,Product,Version,CPE23Uri
+microsoft windows,CVE-2024-21302,1/9/2024,1/18/2024,9.8,Critical,Microsoft Remote Desktop Services Remote Code Execution,"https://msrc.microsoft.com/update-guide/vulnerability/CVE-2024-21302","microsoft","windows_2022","-","cpe:2.3:o:microsoft:windows_server_2022:-:*:*:*:*:*:*:*"
+```
+
+#### Stage 2: Enrich with Vendor Data
+
+**Option A: GUI Mode (Recommended for beginners)**
+```powershell
+.\ui\CVExpand-GUI.ps1
+```
+
+**GUI Steps:**
+1. Click "Load CSV" and select the Stage 1 output file
+2. Review the loaded CVE list
+3. Click "Start Scraping" to enrich with vendor data
+4. Monitor progress in the status window
+5. Click "Export Enhanced CSV" when complete
+
+**Option B: Command Line Mode (For automation)**
+```powershell
+# Single URL processing
+.\CVExpand.ps1 -Url "https://msrc.microsoft.com/update-guide/vulnerability/CVE-2024-21302"
+
+# Batch processing from CSV
+$csv = Import-Csv "out\microsoft_windows_20251026_172736.csv"
+$csv | ForEach-Object {
+    .\CVExpand.ps1 -Url $_.RefUrls.Split('|')[0]
+} | Export-Csv "out\microsoft_windows_enhanced.csv" -NoTypeInformation
+```
+
+**Expected Output:** Enhanced CSV file with additional columns:
+- `DownloadLinks` - Direct links to KB articles, patches, and security updates
+- `PatchID` - KB article numbers or patch identifiers
+- `AffectedVersions` - List of affected software versions
+- `Remediation` - Remediation steps and guidance
+- `ScrapeStatus` - Success/failure status
+- `ScrapedDate` - Timestamp of data extraction
+
+**Sample Enhanced CSV Output (Stage 2):**
+```csv
+CVE,DownloadLinks,PatchID,AffectedVersions,ScrapeStatus
+CVE-2024-21302,"https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB5034129 | https://support.microsoft.com/help/5034129 | ...","KB5034129,KB5034119,KB5034115","Windows 11 Version 24H2, Windows Server 2022, ...","Success"
+```
 
 ---
 
@@ -317,6 +409,225 @@ Extensible vendor-specific extraction modules:
   ```powershell
   .\Install-Playwright.ps1
   ```
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues and Solutions
+
+#### Issue: Execution Policy Error
+
+**Error Message:**
+```
+File cannot be loaded because running scripts is disabled on this system.
+```
+
+**Solution:**
+```powershell
+# Set execution policy for current user
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# Or bypass for current PowerShell session only
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+```
+
+#### Issue: Module Not Found (MsrcSecurityUpdates)
+
+**Error Message:**
+```
+Module 'MsrcSecurityUpdates' not found
+```
+
+**Solution:**
+```powershell
+# Install the module from PowerShell Gallery
+Install-Module -Name MsrcSecurityUpdates -Scope CurrentUser -Force
+
+# If using PowerShell 5.1, first trust the gallery
+Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+
+# Verify installation
+Get-Module -ListAvailable MsrcSecurityUpdates
+```
+
+#### Issue: NVD API Rate Limiting
+
+**Error Message:**
+```
+429 Too Many Requests
+```
+
+**Solution:**
+- **Get a free API key** from [https://nvd.nist.gov/developers/request-an-api-key](https://nvd.nist.gov/developers/request-an-api-key)
+- Add API key to `nvd.api.key` file or environment variable `$env:NVD_API_KEY`
+- API key increases rate limit from 5 to 50 requests per 30 seconds
+- Script already includes automatic retry logic with exponential backoff
+
+#### Issue: Playwright Installation Fails
+
+**Error Message:**
+```
+Playwright browser download failed
+```
+
+**Solution:**
+```powershell
+# Run installation script with elevated privileges
+.\Install-Playwright.ps1
+
+# If still fails, manually install browsers
+pwsh -c "& { Import-Module Microsoft.PowerShell.Core; Invoke-WebRequest -Uri 'https://playwright.dev/downloads' | Invoke-Expression }"
+```
+
+#### Issue: GUI Window Doesn't Open or Crashes
+
+**Error Message:**
+```
+Window appears but is blank or crashes on launch
+```
+
+**Solution:**
+```powershell
+# Check PowerShell version (requires 7.x)
+$PSVersionTable.PSVersion
+
+# Update to latest PowerShell 7
+# Download from: https://github.com/PowerShell/PowerShell/releases
+
+# Check .NET Framework (required for WPF)
+Get-ChildItem "HKLM:SOFTWARE\Microsoft\NET Framework Setup\NDP" -Recurse | Get-ItemProperty -Name Version | Select-Object Version
+```
+
+#### Issue: No Results Returned from NIST API
+
+**Possible Causes and Solutions:**
+
+1. **Product keyword not found**
+   ```powershell
+   # Try using CPE format instead
+   # Instead of: "windows"
+   # Use: "cpe:2.3:o:microsoft:windows:-:*:*:*:*:*:*:*"
+   ```
+
+2. **Date range too narrow**
+   - Extend the date range to cover more CVE publications
+   - Try "Use last-modified dates" checkbox for recent updates
+
+3. **API key issues**
+   ```powershell
+   # Test API connectivity
+   .\CVExcel.ps1
+   # Click "Test API" button in GUI
+   ```
+
+#### Issue: Vendor Scraping Returns Empty Results
+
+**Error Message:**
+```
+ScrapeStatus: Failed
+DownloadLinks: (empty)
+```
+
+**Solution:**
+```powershell
+# Check vendor-specific module
+.\vendors\MicrosoftVendor.ps1
+
+# Test individual vendor scraping
+.\tests\TEST_VENDOR_MODULES.ps1
+
+# Check network connectivity to vendor sites
+Test-NetConnection msrc.microsoft.com -Port 443
+```
+
+#### Issue: CSV Export Fails or File Is Empty
+
+**Error Message:**
+```
+CSV file created but has no data
+```
+
+**Solution:**
+```powershell
+# Check output directory permissions
+Test-Path ".\out\" -WriteCheck
+
+# Verify CSV file content
+Get-Content ".\out\*.csv" | Select-Object -First 5
+
+# Check for special characters in product names
+# Some products may have invalid filename characters
+```
+
+#### Issue: Slow Performance or High Memory Usage
+
+**Symptoms:**
+- Script runs very slowly
+- High memory usage (several GB)
+
+**Solution:**
+```powershell
+# Process smaller date ranges
+# Instead of: Last 365 days
+# Use: Last 30 days
+
+# Use API key for faster NVD queries
+# Reduces time from 2 hours to 20 minutes for large datasets
+
+# Close other applications to free memory
+Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 10
+```
+
+### Diagnostic Commands
+
+```powershell
+# Check PowerShell version
+$PSVersionTable
+
+# Check installed modules
+Get-InstalledModule | Select-Object Name, Version
+
+# Check network connectivity
+Test-NetConnection api.github.com -Port 443
+Test-NetConnection nvd.nist.gov -Port 443
+Test-NetConnection msrc.microsoft.com -Port 443
+
+# Check output directory
+Get-ChildItem ".\out\" | Select-Object Name, Length, LastWriteTime
+
+# Check for errors in logs
+Get-ChildItem ".\out\*.log" | Get-Content | Select-String "Error"
+```
+
+### Getting Help
+
+1. **Check Logs** - Review log files in `out\` directory
+   ```powershell
+   Get-ChildItem ".\out\*.log" | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | Get-Content
+   ```
+
+2. **Run Tests** - Use the test suite to identify issues
+   ```powershell
+   .\tests\run-all-tests.ps1 -Verbose
+   ```
+
+3. **Enable Verbose Output** - Run with detailed logging
+   ```powershell
+   .\CVExcel.ps1 -Verbose
+   ```
+
+4. **Review Documentation** - Check `docs\` directory for detailed guides
+
+5. **Check Existing Issues** - Review archived documentation in `docs\archive\`
+
+### Performance Tips
+
+- **Use NVD API Key** - 10x faster data collection
+- **Process smaller date ranges** - Reduces memory usage
+- **Run during off-peak hours** - Better API performance
+- **Close unnecessary applications** - Frees system resources
+- **Use SSD storage** - Faster CSV read/write operations
 
 ---
 

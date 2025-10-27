@@ -14,6 +14,7 @@
 - **[README.md](README.md)** - Main project documentation
 - **[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)** - High-level project overview
 - **[API_REFERENCE.md](API_REFERENCE.md)** - API and function reference
+- **[spec-kit.yaml](../spec-kit.yaml)** - Complete project specifications (Spec Kit)
 
 ### Implementation Guides
 - **[MSRC_API_SOLUTION.md](MSRC_API_SOLUTION.md)** ⭐ **LATEST** - Official Microsoft Security Updates API integration (RECOMMENDED)
@@ -21,6 +22,7 @@
 - **[VENDOR_MODULARIZATION_SUMMARY.md](VENDOR_MODULARIZATION_SUMMARY.md)** - Vendor module architecture
 - **[IMPLEMENTATION_COMPLETE_CVEXPAND_GUI.md](IMPLEMENTATION_COMPLETE_CVEXPAND_GUI.md)** - CVExpand-GUI implementation details
 - **[REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md)** - Code refactoring summary
+- **[SPEC_KIT_ADDED.md](SPEC_KIT_ADDED.md)** - Spec Kit implementation details
 
 ### Technical Guides
 - **[PLAYWRIGHT_IMPLEMENTATION.md](PLAYWRIGHT_IMPLEMENTATION.md)** - Playwright browser automation setup
@@ -57,6 +59,11 @@
 
 ## 🔄 Recent Changes
 
+### October 26, 2025 - Spec Kit Added ⭐
+- **Added:** Comprehensive project specifications (spec-kit.yaml)
+- **Status:** Complete - Single source of truth for all project specs
+- **Docs:** [SPEC_KIT_ADDED.md](SPEC_KIT_ADDED.md)
+
 ### October 4, 2025 - MSRC API Integration ⭐
 - **Added:** Official Microsoft Security Updates API support
 - **Status:** Production ready - no Playwright needed for MSRC pages!
@@ -86,6 +93,7 @@ CVExcel/
 ├── CVExcel.ps1                    # Main entry point
 ├── CVExpand.ps1                   # Core expansion logic
 ├── Install-Playwright.ps1         # Playwright installation
+├── spec-kit.yaml                  # Project specifications (Spec Kit)
 ├── LICENSE                        # MIT License
 │
 ├── ui/                            # GUI modules

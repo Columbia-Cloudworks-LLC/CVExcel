@@ -12,6 +12,7 @@ This is a CVE (Common Vulnerabilities and Exposures) data scraping project that:
 ## AI Foreman Integration
 - AI Foreman is enabled and configured in `.ai/` directory
 - Spec Kit configuration in `.ai/spec-pack.yaml` and `.ai/rules.yaml`
+- Project Specifications in `spec-kit.yaml`
 - AI Foreman runs checks, planners, and applies changes idempotently
 - Changes are applied via git branches with automatic testing
 - Fingerprint-based change detection prevents unnecessary operations

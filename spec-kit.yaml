@@ -1,0 +1,447 @@
+# CVExcel Project Specification Kit
+# Comprehensive project specifications for CVExcel CVE data collection system
+
+version: "1.1.0"
+name: "CVExcel - CVE Data Collection & Enrichment"
+description: "Two-stage CVE data collection and enrichment system with AI Foreman integration"
+
+metadata:
+  author: "CVExcel Team"
+  license: "MIT"
+  created: "2024"
+  last_updated: "2025-10-26"
+  repository: "https://github.com/your-username/CVExcel"
+
+# Core Architecture
+architecture:
+  type: "powershell-modular"
+  pattern: "two-stage-pipeline"
+
+  stages:
+    - name: "Stage 1: CVE Collection"
+      script: "CVExcel.ps1"
+      purpose: "Collect CVE data from NIST NVD API"
+      inputs: ["API Key", "Configuration"]
+      outputs: ["Raw CVE Data (JSON/CSV)"]
+
+    - name: "Stage 2: Vendor Enrichment"
+      script: "CVExpand.ps1"
+      purpose: "Enrich CVE data with vendor patch information"
+      inputs: ["Stage 1 Output", "Vendor URLs"]
+      outputs: ["Enriched CVE Data (CSV)"]
+
+  components:
+    core:
+      - name: "CVExcel.ps1"
+        purpose: "NIST CVE data collection"
+        dependencies: ["PowerShell 7.x", "NIST NVD API"]
+
+      - name: "CVExpand.ps1"
+        purpose: "Vendor data enrichment"
+        dependencies: ["Stage 1 Output", "Playwright", "Vendor Modules"]
+
+    vendors:
+      path: "vendors/"
+      pattern: "*Vendor.ps1"
+      base_class: "BaseVendor.ps1"
+      modules:
+        - "MicrosoftVendor.ps1"
+        - "GitHubVendor.ps1"
+        - "IBMVendor.ps1"
+        - "ZDIVendor.ps1"
+        - "GenericVendor.ps1"
+      manager: "VendorManager.ps1"
+
+    ui:
+      path: "ui/"
+      scripts: ["CVExpand-GUI.ps1"]
+
+    tests:
+      path: "tests/"
+      frameworks: ["Pester", "Playwright"]
+      coverage_target: 80%
+
+# Technology Stack
+tech_stack:
+  primary_language: "PowerShell 7.x"
+
+  runtime:
+    - name: "PowerShell"
+      version: ">=7.0"
+      module_requirements:
+        - "Microsoft.PowerShell.SecretManagement"
+        - "Microsoft.PowerShell.SecretStore"
+        - "Pester"
+
+  testing:
+    - name: "Pester"
+      version: ">=5.0"
+      purpose: "Unit and integration testing"
+
+    - name: "Playwright"
+      version: "latest"
+      purpose: "Browser automation and web scraping"
+      installation: "pwsh Install-Playwright.ps1"
+
+  code_quality:
+    - name: "PSScriptAnalyzer"
+      version: "latest"
+      purpose: "Code analysis and security auditing"
+
+  api_integrations:
+    - name: "NIST NVD API"
+      version: "v2"
+      purpose: "CVE data collection"
+      authentication: "API Key (optional but recommended)"
+
+  ai_integration:
+    - name: "AI Foreman"
+      version: "1.1.0"
+      enabled: true
+      config: ".ai/spec-pack.yaml"
+      rules: ".ai/rules.yaml"
+
+# Code Standards
+code_standards:
+  powershell:
+    style_guide: "Microsoft PowerShell Coding Style Guide"
+
+    naming_conventions:
+      functions: "Verb-Noun (PascalCase)"
+      variables: "PascalCase for parameters, camelCase for locals"
+      files: "PascalCase.ps1"
+      classes: "PascalCase"
+
+    required_elements:
+      - "Parameter validation"
+      - "Error handling (try-catch)"
+      - "Comprehensive logging"
+      - "Documentation comments"
+      - "Output type specification"
+
+    prohibited_patterns:
+      - "Write-Host for file output (use Write-Output)"
+      - "Global variables without justification"
+      - "Hard-coded credentials"
+      - "Broad exception handling without specificity"
+      - "No logging for critical operations"
+
+    mandatory_imports:
+      - "Microsoft.PowerShell.SecretManagement"
+      - "System.Management.Automation"
+
+  security:
+    guidelines: "NIST SP 800-53"
+
+    required_practices:
+      - "Input validation for all user-provided data"
+      - "Parameterized queries/prepared statements"
+      - "Secure credential management"
+      - "Proper session management and timeout controls"
+      - "Logging of security-relevant events"
+
+    access_control:
+      - "Principle of least privilege"
+      - "Role-based access control where applicable"
+      - "Strong authentication mechanisms"
+      - "Authorization checks before sensitive operations"
+
+    data_protection:
+      - "Encrypt sensitive data at rest and in transit"
+      - "Industry-standard encryption (AES-256, RSA-2048+)"
+      - "Secure random number generation"
+      - "Data retention and disposal policies"
+      - "Mask sensitive information in logs"
+
+    vulnerability_management:
+      - "Keep dependencies updated"
+      - "Static code analysis (PSScriptAnalyzer)"
+      - "Automated security testing in CI/CD"
+      - "Regular security code reviews"
+      - "Dependency scanning"
+
+# Project Structure
+project_structure:
+  directory_tree:
+    root: "CVExcel"
+
+    core_scripts:
+      - "CVExcel.ps1 (Stage 1 - CVE Collection)"
+      - "CVExpand.ps1 (Stage 2 - Vendor Enrichment)"
+      - "CVExcel-CoreEngine.ps1 (Core functionality)"
+      - "ai-foreman.ps1 (AI Foreman automation)"
+      - "cursor-chat-integration.ps1 (Cursor integration)"
+
+    modules:
+      - "vendors/ (Vendor-specific scraping modules)"
+      - "core-engine/ (Core engine modules)"
+
+    configuration:
+      - "config.json (Configuration file)"
+      - ".cursorrules (Cursor workspace rules)"
+      - "cursor-workspace.json (Workspace metadata)"
+
+    ai_foreman:
+      - ".ai/spec-pack.yaml (AI Foreman spec pack)"
+      - ".ai/rules.yaml (AI Foreman rules)"
+      - ".ai/checks/ (Analysis scripts)"
+      - ".ai/planners/ (Planning scripts)"
+      - ".ai/state/ (State and results)"
+
+    documentation:
+      - "docs/ (Comprehensive documentation)"
+      - "README.md (Project overview)"
+      - "LICENSE (MIT License)"
+
+    output:
+      - "out/ (Output directory for CSV files)"
+
+    tests:
+      - "tests/ (Test suite)"
+
+    support:
+      - "Install-Playwright.ps1"
+      - "packages/ (Supporting packages)"
+
+# Vendor Module Specifications
+vendor_modules:
+  pattern: "Inherit from BaseVendor.ps1"
+
+  base_class_requirements:
+    - "Abstract class with required methods"
+    - "Error handling implementation"
+    - "Logging framework"
+    - "Output standardization"
+
+  module_interface:
+    required_methods:
+      - "Get-VendorName(): Returns vendor name string"
+      - "Invoke-VendorScraping(): Performs scraping operation"
+      - "Test-VendorModule(): Tests module functionality"
+      - "Get-VendorMetadata(): Returns vendor metadata"
+
+    optional_methods:
+      - "Test-API(): Tests API connectivity"
+      - "Get-VendorStatistics(): Returns scraping statistics"
+
+  implementation_requirements:
+    - "Inherit from BaseVendor class"
+    - "Implement all required methods"
+    - "Provide comprehensive error handling"
+    - "Log all significant operations"
+    - "Return standardized output format"
+    - "Include unit tests"
+
+  supported_vendors:
+    - "Microsoft (MSRC)"
+    - "GitHub (Security Advisories)"
+    - "IBM (Security Bulletins)"
+    - "ZDI (Zero Day Initiative)"
+    - "Generic (Template for new vendors)"
+
+# Testing Requirements
+testing:
+  framework: "Pester"
+  coverage_target: 80%
+
+  unit_tests:
+    required: true
+    path: "tests/test-*.ps1"
+    naming: "test-<feature>.ps1"
+
+  integration_tests:
+    required: true
+    frameworks: ["Pester", "Playwright"]
+    purpose: "Test vendor scraping functionality"
+
+  test_types:
+    - name: "Unit Tests"
+      purpose: "Test individual functions and modules"
+      framework: "Pester"
+
+    - name: "Integration Tests"
+      purpose: "Test end-to-end workflows"
+      framework: "Pester"
+
+    - name: "Scraping Tests"
+      purpose: "Test web scraping functionality"
+      framework: "Playwright"
+
+    - name: "Security Tests"
+      purpose: "Test NIST compliance"
+      framework: "PSScriptAnalyzer"
+
+  test_execution:
+    command: "pwsh ./tests/run-all-tests.ps1"
+    requirements:
+      - "All tests must pass"
+      - "Coverage must meet 80% target"
+      - "No PSScriptAnalyzer errors or warnings"
+
+# Documentation Requirements
+documentation:
+  required_files:
+    - "README.md (Project overview)"
+    - "docs/INDEX.md (Documentation index)"
+    - "docs/QUICK_START.md (Quick start guide)"
+    - "docs/API_REFERENCE.md (API documentation)"
+    - "docs/DEPLOYMENT_GUIDE.md (Deployment guide)"
+    - "docs/Architecture.md (System architecture)"
+    - "docs/AI_FOREMAN_INTEGRATION.md (AI Foreman guide)"
+
+  code_documentation:
+    required: true
+    style: "XML documentation comments"
+
+    required_elements:
+      - "Function purpose"
+      - "Parameter descriptions"
+      - "Return value description"
+      - "Usage examples where applicable"
+      - "Error handling documentation"
+
+  vendor_module_docs:
+    required: true
+    content:
+      - "Vendor-specific scraping logic"
+      - "Supported CVE data formats"
+      - "Known limitations"
+      - "Usage examples"
+      - "Error handling"
+
+# Configuration
+configuration:
+  files:
+    - "config.json"
+    - ".cursorrules"
+    - "cursor-workspace.json"
+
+  config_structure:
+    api_keys:
+      nist_nvd: "Optional API key for increased rate limits"
+
+    output_settings:
+      format: "CSV"
+      directory: "out/"
+      filename_template: "{vendor}_{timestamp}.csv"
+
+    scraping_settings:
+      timeout: "30 seconds"
+      retry_count: 3
+      rate_limiting: "Respectful"
+
+# AI Foreman Integration
+ai_foreman:
+  enabled: true
+  version: "1.1.0"
+
+  spec_pack: ".ai/spec-pack.yaml"
+  rules: ".ai/rules.yaml"
+
+  capabilities:
+    - "Automated code analysis"
+    - "Security compliance checking"
+    - "Documentation synchronization"
+    - "Dead link detection"
+    - "Comment accuracy validation"
+    - "Vendor module improvements"
+    - "Cursor chat integration"
+
+  automated_rules:
+    - "docs-sync-api"
+    - "dead-links"
+    - "comment-accuracy-vs-code"
+    - "cursor-chat-integration"
+    - "vendor-module-improvements"
+    - "security-compliance"
+
+  workflow:
+    1. "User submits request through Cursor chat"
+    2. "AI Foreman analyzes codebase"
+    3. "AI Foreman plans improvements"
+    4. "AI Foreman applies changes idempotently"
+    5. "All tests are run automatically"
+    6. "User reviews and approves changes"
+
+# Deployment
+deployment:
+  environments:
+    - name: "Development"
+      requirements: ["PowerShell 7.x", "Playwright"]
+
+    - name: "Production"
+      requirements: ["PowerShell 7.x", "Playwright", "API Keys"]
+
+  installation:
+    steps:
+      - "Clone repository"
+      - "Install PowerShell modules"
+      - "Install Playwright: pwsh Install-Playwright.ps1"
+      - "Configure config.json"
+      - "Obtain NIST NVD API key (optional)"
+
+  running:
+    stage1: ".\\CVExcel.ps1"
+    stage2: ".\\CVExpand.ps1"
+    gui: ".\\ui\\CVExpand-GUI.ps1"
+
+# Security Requirements
+security:
+  guidelines: "NIST SP 800-53"
+  compliance_level: "Required"
+
+  audit:
+    frequency: "Automated with each commit"
+    tools: ["PSScriptAnalyzer", "AI Foreman security audit"]
+
+  practices:
+    - "Input validation"
+    - "Parameterized queries"
+    - "Secure credential management"
+    - "Proper error handling"
+    - "Comprehensive logging"
+    - "Access control"
+    - "Data encryption"
+    - "Vulnerability management"
+
+# Maintenance
+maintenance:
+  ai_foreman: "Automated maintenance via AI Foreman"
+  code_reviews: "Required for all changes"
+  dependency_updates: "Regularly updated"
+  documentation_updates: "Synchronized with code changes"
+
+  monitoring:
+    - "AI Foreman logs in .ai/state/"
+    - "Test results in tests/ directory"
+    - "PSScriptAnalyzer reports"
+    - "Security audit reports"
+
+# Success Criteria
+success_criteria:
+  code_quality:
+    - "PSScriptAnalyzer: No errors"
+    - "Test coverage: >=80%"
+    - "All tests passing"
+
+  security:
+    - "NIST SP 800-53 compliance"
+    - "No security vulnerabilities"
+    - "Proper credential management"
+
+  functionality:
+    - "Stage 1: Successfully collects CVE data"
+    - "Stage 2: Successfully enriches with vendor data"
+    - "All vendor modules functional"
+    - "GUI operational"
+
+  documentation:
+    - "All documentation updated"
+    - "Code is comprehensively documented"
+    - "API reference is accurate"
+
+  ai_foreman:
+    - "Automated checks running"
+    - "All rules enforced"
+    - "Idempotent changes"
+    - "Cursor chat integration working"
