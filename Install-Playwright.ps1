@@ -147,11 +147,20 @@ function Install-PlaywrightPackage {
     }
 }
 
-$playwrightScript = Get-ChildItem -Path $PackageDir -Recurse -Filter "playwright.ps1" | Select-Object -First 1
+function Install-PlaywrightBrowsers {
+    param(
+        [string]$PackageDir,
+        [string]$BrowserType
+    )
 
-Write-ColorOutput "✗ Failed to install Playwright package" "Red"
-Write-ColorOutput "  Error: $restoreOutput" "Red"d" "Red"
-        return $false
+    Write-ColorOutput "`n🌐 Installing Playwright browser binaries..." "Cyan"
+
+    $playwrightScript = Get-ChildItem -Path $PackageDir -Recurse -Filter "playwright.ps1" | Select-Object -First 1
+
+    if (-not $playwrightScript) {
+        Write-ColorOutput "⚠ Playwright script not found, skipping browser installation" "Yellow"
+        Write-ColorOutput "  Browsers may need to be installed manually" "Yellow"
+        return $true  # Continue anyway
     }
 
     Write-ColorOutput "  Installing $BrowserType browser..." "Yellow"
@@ -166,8 +175,7 @@ Write-ColorOutput "  Error: $restoreOutput" "Red"d" "Red"
             Write-ColorOutput "  Note: Some system dependencies may require manual installation" "Yellow"
             return $true  # Continue anyway as browser might work
         }
-    }
-    catch {
+    } catch {
         Write-ColorOutput "✗ Failed to install browser: $($_.Exception.Message)" "Red"
         return $false
     }
@@ -180,27 +188,25 @@ function Test-PlaywrightInstallation {
 
     Write-ColorOutput "`n🔍 Verifying Playwright installation..." "Cyan"
 
-    # Check for Playwright DLL
-    $playwrightDll = Get-ChildItem -Path $PackageDir -Recurse -Filter "Microsoft.Playwright.dll" | Select-Object -First 1
+    # Check for Playwright DLL in lib directory
+    $libDir = Join-Path $PackageDir "lib"
+    $playwrightDll = Get-ChildItem -Path $libDir -Filter "Microsoft.Playwright.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
 
     if (-not $playwrightDll) {
-        Write-ColorOutput "✗ Playwright DLL not found" "Red"
+        Write-ColorOutput "✗ Playwright DLL not found in $libDir" "Red"
         return $false
     }
 
     Write-ColorOutput "✓ Playwright DLL found: $($playwrightDll.FullName)" "Green"
-    # Check for Playwright DLL in lib directory
-    $libDir = Join-Path $PackageDir "lib"
-    $playwrightDll = Get-ChildItem -Path $libDir -Filter "Microsoft.Playwright.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
+
     try {
         Add-Type -Path $playwrightDll.FullName
-        Write-ColorOutput "✗ Playwright DLL not found in $libDir" "Red"essfully" "Green"
-return $true
-}
-catch {
-    Write-ColorOutput "✗ Failed to load Playwright assembly: $($_.Exception.Message)" "Red"
-    return $false
-}
+        Write-ColorOutput "✓ Playwright assembly loaded successfully" "Green"
+        return $true
+    } catch {
+        Write-ColorOutput "✗ Failed to load Playwright assembly: $($_.Exception.Message)" "Red"
+        return $false
+    }
 }
 
 # -------------------- Main Installation --------------------
@@ -282,16 +288,7 @@ Write-ColorOutput @"
 ╚═══════════════════════════════════════════════════════════════╝
 
 Next steps:
-1. Run: .\CVScrape.ps1
-2. MSRC pages will now render with full JavaScript content
-3. Check logs for "Successfully rendered MSRC page with Playwright"
-
-Installation location: $PackageDir
-
-"@ "Green"
-
-exit 0
-1. Run: .\CVScrape.ps1
+1. Run: .\CVExpand.ps1
 2. MSRC pages will now render with full JavaScript content
 3. Check logs for "Successfully rendered MSRC page with Playwright"
 

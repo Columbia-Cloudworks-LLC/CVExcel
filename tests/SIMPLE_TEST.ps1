@@ -5,7 +5,13 @@ SIMPLE_TEST.ps1 - Simple Test Script for CVScraper.ps1 Fixes
 Write-Host "Testing CVScraper.ps1 fixes..." -ForegroundColor Cyan
 
 # Import the updated CVScraper.ps1
-. .\CVScrape.ps1
+$cvexcelPath = Join-Path $PSScriptRoot "..\CVExcel.ps1"
+if (Test-Path $cvexcelPath) {
+    . $cvexcelPath
+} else {
+    Write-Host "✗ CVExcel.ps1 not found at $cvexcelPath" -ForegroundColor Red
+    exit 1
+}
 
 Write-Host "`nTest 1: Selenium Module Installation" -ForegroundColor Yellow
 try {
@@ -35,10 +41,10 @@ try {
 
 Write-Host "`nTest 3: Data Quality Validation" -ForegroundColor Yellow
 $goodData = @{
-    PatchID = "KB123456"
-    FixVersion = "10.0.19041.1"
+    PatchID          = "KB123456"
+    FixVersion       = "10.0.19041.1"
     AffectedVersions = "Windows 10, Windows 11"
-    Remediation = "Apply the security update as soon as possible"
+    Remediation      = "Apply the security update as soon as possible"
 }
 
 try {

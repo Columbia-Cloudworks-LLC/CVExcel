@@ -8,7 +8,11 @@ Write-Host "╚═════════════════════�
 # Test 1: Load vendor modules
 Write-Host "Test 1: Loading vendor modules..." -ForegroundColor Yellow
 try {
-    . "$PSScriptRoot\vendors\VendorManager.ps1"
+    $vendorManagerPath = Join-Path $PSScriptRoot "..\vendors\VendorManager.ps1"
+    if (-not (Test-Path $vendorManagerPath)) {
+        throw "VendorManager.ps1 not found at $vendorManagerPath"
+    }
+    . $vendorManagerPath
     $vendorManager = [VendorManager]::new()
     Write-Host "✓ Vendor modules loaded successfully" -ForegroundColor Green
     Write-Host "  Total vendors: $($vendorManager.GetSupportedVendors().Count)" -ForegroundColor Gray
@@ -97,12 +101,13 @@ try {
 Write-Host "`nTest 6: Testing CVScraper integration..." -ForegroundColor Yellow
 try {
     # Test if CVScraper can load the vendor modules
+    $vendorManagerPath = Join-Path $PSScriptRoot "..\vendors\VendorManager.ps1"
     $testScript = @"
-    . "$PSScriptRoot\vendors\VendorManager.ps1"
+    . "$vendorManagerPath"
     `$Global:VendorManager = [VendorManager]::new()
     Write-Output "VendorManager initialized successfully"
 "@
-    
+
     $result = Invoke-Expression $testScript
     Write-Host "✓ CVScraper integration test passed" -ForegroundColor Green
     Write-Host "  $result" -ForegroundColor Gray

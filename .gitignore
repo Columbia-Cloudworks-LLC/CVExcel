@@ -434,3 +434,13 @@ FodyWeavers.xsd
 ./playwright-report-debug/*
 ./playwright-test-results-debug-verbose/*
 ./playwright-report-debug-verbose/*
+
+# Spec Kit - Uncomment to include in version control
+# .spec/specs/*.md
+# .spec/plans/*.md
+# .spec/tasks/*.md
+
+# AI Foreman - Deprecated, use Cursor native AI instead
+.ai/
+ai-foreman.ps1
+cursor-chat-integration.ps1

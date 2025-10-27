@@ -7,7 +7,7 @@ This directory contains comprehensive tests for the CVExcel project, covering al
 ### Quick Tests
 
 - **`test-powershell-version.ps1`** - PowerShell version compatibility
-- **`SIMPLE_TEST.ps1`** - Basic CVScraper functionality
+- **`SIMPLE_TEST.ps1`** - Basic CVExcel functionality
 - **`SIMPLE_VENDOR_TEST.ps1`** - Basic vendor module tests
 
 ### Comprehensive Tests
@@ -17,6 +17,8 @@ This directory contains comprehensive tests for the CVExcel project, covering al
 - **`TEST_SELENIUM_FIXES.ps1`** - Selenium integration
 - **`TEST_AUTO_INSTALL.ps1`** - Auto-install features
 - **`test-cvexcel-integration.ps1`** - Main CVExcel integration
+- **`test-cvexpand-scraping.ps1`** - CVExpand scraping functionality
+- **`test-playwright-functions.ps1`** - Playwright wrapper testing
 
 ### Test Infrastructure
 
@@ -88,6 +90,16 @@ Tests generate detailed reports including:
 - Execution time
 - Error messages and details
 - Summary statistics
+
+## Path Corrections Applied
+
+The test suite has been updated to use correct relative paths:
+
+- **Vendor modules**: Tests now correctly reference `..\vendors\` from the tests directory
+- **Main scripts**: Tests reference `..\CVExcel.ps1` instead of non-existent `CVScrape.ps1`
+- **UI components**: Playwright tests reference `..\ui\PlaywrightWrapper.ps1`
+- **Output directory**: Tests create/use `..\out\` directory for test outputs
+- **Missing files**: Created missing test files (`test-powershell-version.ps1`, `test-required-modules.ps1`, `test-cvexcel-integration.ps1`)
 
 ## Prerequisites
 

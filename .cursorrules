@@ -1,5 +1,5 @@
 # CVExcel Cursor Rules
-# AI Foreman Integration for Idempotent Development
+# Cursor-Native AI Development
 
 ## Project Context
 This is a CVE (Common Vulnerabilities and Exposures) data scraping project that:
@@ -9,12 +9,11 @@ This is a CVE (Common Vulnerabilities and Exposures) data scraping project that:
 - Follows NIST security guidelines for secure coding practices
 - Uses modular vendor-specific scraping classes
 
-## AI Foreman Integration
-- AI Foreman is enabled and configured in `.ai/` directory
-- Spec Kit configuration in `.ai/spec-pack.yaml` and `.ai/rules.yaml`
-- AI Foreman runs checks, planners, and applies changes idempotently
-- Changes are applied via git branches with automatic testing
-- Fingerprint-based change detection prevents unnecessary operations
+## Development Philosophy
+- **Cursor-First Development** - Use Cursor's native AI chat for all code changes
+- **No PowerShell Scripting for AI** - AI-driven development should happen in Cursor, not via PowerShell scripts
+- **Direct Code Changes** - All development happens through Cursor chat interface
+- **Idempotent Changes** - Cursor handles change application automatically
 
 ## Core Principles
 1. **Security First** - All code must follow NIST security guidelines
@@ -22,7 +21,7 @@ This is a CVE (Common Vulnerabilities and Exposures) data scraping project that:
 3. **Playwright Excellence** - Use modern testing and automation practices
 4. **Maintainability** - Write clean, documented, and modular code
 5. **Error Handling** - Implement comprehensive error handling and logging
-6. **Idempotent Development** - Use AI Foreman for consistent, repeatable changes
+6. **Cursor Native AI** - Use Cursor's built-in AI capabilities for all development
 
 ## Project Structure
 - `vendors/` - Modular vendor-specific scraping classes
@@ -30,14 +29,13 @@ This is a CVE (Common Vulnerabilities and Exposures) data scraping project that:
 - `out/` - Output directory for scraped data (CSV format)
 - `docs/` - Project documentation and guides
 - `config/` - Configuration files and settings
-- `.ai/` - AI Foreman configuration and automation
 
 ## Key Technologies
 - **PowerShell** - Primary scripting language with advanced function patterns
 - **Playwright** - Web automation and testing framework
 - **PSScriptAnalyzer** - Code quality and security analysis
 - **Pester** - PowerShell testing framework
-- **AI Foreman** - Automated code maintenance and improvement
+- **Cursor AI** - Native AI-driven development and code assistance
 
 ## Security Requirements
 - Follow NIST SP 800-53 security controls
@@ -47,10 +45,10 @@ This is a CVE (Common Vulnerabilities and Exposures) data scraping project that:
 - Handle sensitive data according to security guidelines
 
 ## Development Workflow
-1. **AI Foreman Integration** - Use Cursor chat to request changes
-2. **Idempotent Operations** - AI Foreman ensures consistent results
-3. **Automated Testing** - All changes are tested before application
-4. **Git Integration** - Changes are applied via feature branches
+1. **Cursor Chat** - Request changes directly through Cursor chat
+2. **Direct Implementation** - Cursor implements changes in real-time
+3. **Automated Testing** - Run tests manually or through Cursor
+4. **Git Integration** - Commit changes through Cursor or git CLI
 5. **Documentation** - Maintain comprehensive documentation
 
 ## Code Quality Standards
@@ -67,19 +65,13 @@ This is a CVE (Common Vulnerabilities and Exposures) data scraping project that:
 - Maintain test coverage for critical paths
 - Test vendor-specific scraping modules
 
-## AI Foreman Commands
-- Run AI Foreman: `.\ai-foreman.ps1`
-- Check AI Foreman status: Review `.ai/state/fp.json`
-- View AI Foreman logs: Check `docs/AI_FOREMAN_LOG.md`
-- Manual AI Foreman run: `.\ai-foreman.ps1 -VerboseLog`
-
-## Cursor Chat Integration
-When requesting changes through Cursor chat:
-1. Specify the exact change needed
-2. AI Foreman will analyze and plan the change
-3. Changes will be applied idempotently
-4. All changes are tested before application
-5. Results are logged and tracked
+## Cursor Chat Development
+When making changes through Cursor chat:
+1. Describe the exact change needed in natural language
+2. Cursor will analyze and implement the change
+3. Review the changes carefully before accepting
+4. Run tests to verify functionality
+5. Commit changes when ready
 
 ## File Patterns
 - PowerShell scripts: `*.ps1`, `*.psm1`

@@ -10,22 +10,36 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, System.Web
 
 # Import vendor modules
 Write-Host "Loading vendor modules..." -ForegroundColor Yellow
-. ".\vendors\BaseVendor.ps1"
-. ".\vendors\GenericVendor.ps1"
-. ".\vendors\GitHubVendor.ps1"
-. ".\vendors\MicrosoftVendor.ps1"
-. ".\vendors\IBMVendor.ps1"
-. ".\vendors\ZDIVendor.ps1"
-. ".\vendors\VendorManager.ps1"
+$vendorPath = Join-Path $PSScriptRoot "..\vendors"
+$vendorFiles = @("BaseVendor.ps1", "GenericVendor.ps1", "GitHubVendor.ps1", "MicrosoftVendor.ps1", "IBMVendor.ps1", "ZDIVendor.ps1", "VendorManager.ps1")
+
+foreach ($file in $vendorFiles) {
+    $filePath = Join-Path $vendorPath $file
+    if (Test-Path $filePath) {
+        . $filePath
+    } else {
+        Write-Host "⚠ Warning: $file not found at $filePath" -ForegroundColor Yellow
+    }
+}
 Write-Host "✓ Vendor modules loaded" -ForegroundColor Green
 
 # Import Playwright wrapper
 Write-Host "Loading Playwright wrapper..." -ForegroundColor Yellow
-. ".\PlaywrightWrapper.ps1"
-Write-Host "✓ Playwright wrapper loaded`n" -ForegroundColor Green
+$playwrightPath = Join-Path $PSScriptRoot "..\ui\PlaywrightWrapper.ps1"
+if (Test-Path $playwrightPath) {
+    . $playwrightPath
+    Write-Host "✓ Playwright wrapper loaded`n" -ForegroundColor Green
+} else {
+    Write-Host "⚠ Warning: PlaywrightWrapper.ps1 not found at $playwrightPath" -ForegroundColor Yellow
+    Write-Host "  Continuing without Playwright support`n" -ForegroundColor Yellow
+}
 
 # Initialize global variables
-$Global:LogFile = Join-Path ".\out" "test_scraping_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+$outDir = Join-Path $PSScriptRoot "..\out"
+if (-not (Test-Path $outDir)) {
+    New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+}
+$Global:LogFile = Join-Path $outDir "test_scraping_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
 $Global:VendorManager = [VendorManager]::new()
 
 # Simple logging function

@@ -1,4 +1,0 @@
-# Prompt: comments_vs_impl v1.0.0
-Given a report of mismatches between comments and implementation, produce a unified
-diff that updates only the incorrect comments. Do not reflow or restyle large blocks.
-If changes are trivial (<3 lines total), output NOOP.
